@@ -51,7 +51,7 @@ export const TrustBar = () => {
             key={s.label}
             initial={{ opacity: 0, y: 16 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: i * 0.1, duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ delay: i * 0.1, duration: 0.6, ease: [0.32, 0.72, 0, 1] as const }}
             className="flex flex-col items-center text-center lg:border-l lg:border-border lg:first:border-l-0 lg:px-6"
           >
             <Counter stat={s} start={inView} />
