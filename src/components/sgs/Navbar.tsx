@@ -14,42 +14,66 @@ import {
   Droplets,
   Layers,
   Wrench,
+  Languages,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useI18n, type DictKey } from "@/lib/i18n";
 
-const equiposItems = [
-  { icon: ConstructionIcon, name: "Grúas", desc: "Telescópicas, torre y móviles", href: "#equipos" },
-  { icon: Truck, name: "Excavadoras", desc: "Hidráulicas y compactas", href: "#equipos" },
-  { icon: Forklift, name: "Montacargas", desc: "Eléctricos y diésel hasta 25t", href: "#equipos" },
-  { icon: Wind, name: "Compresores", desc: "Estacionarios y portátiles", href: "#equipos" },
-  { icon: Zap, name: "Generadores", desc: "Industriales 10kVA – 2MVA", href: "#equipos" },
-  { icon: Droplets, name: "Bombas Industriales", desc: "Centrífugas y sumergibles", href: "#equipos" },
+type MegaItem = { icon: typeof Truck; nameKey: DictKey; descKey: DictKey; href: string };
+
+const equiposItems: MegaItem[] = [
+  { icon: ConstructionIcon, nameKey: "eq.gruas", descKey: "eq.gruas.d", href: "#equipos" },
+  { icon: Truck, nameKey: "eq.exc", descKey: "eq.exc.d", href: "#equipos" },
+  { icon: Forklift, nameKey: "eq.mont", descKey: "eq.mont.d", href: "#equipos" },
+  { icon: Wind, nameKey: "eq.comp", descKey: "eq.comp.d", href: "#equipos" },
+  { icon: Zap, nameKey: "eq.gen", descKey: "eq.gen.d", href: "#equipos" },
+  { icon: Droplets, nameKey: "eq.bombas", descKey: "eq.bombas.d", href: "#equipos" },
 ];
 
-const categoriasItems = [
-  { icon: Layers, name: "Construcción", desc: "Maquinaria pesada para obra", href: "#categorias" },
-  { icon: Wrench, name: "Minería", desc: "Equipos de alto rendimiento", href: "#categorias" },
-  { icon: Truck, name: "Logística", desc: "Manejo de carga y materiales", href: "#categorias" },
-  { icon: Zap, name: "Energía", desc: "Generación y respaldo eléctrico", href: "#categorias" },
+const categoriasItems: MegaItem[] = [
+  { icon: Layers, nameKey: "cat.constr", descKey: "cat.constr.d", href: "#categorias" },
+  { icon: Wrench, nameKey: "cat.min", descKey: "cat.min.d", href: "#categorias" },
+  { icon: Truck, nameKey: "cat.log", descKey: "cat.log.d", href: "#categorias" },
+  { icon: Zap, nameKey: "cat.energy", descKey: "cat.energy.d", href: "#categorias" },
 ];
 
-type NavItem = { label: string; href: string; mega?: typeof equiposItems };
+type NavItem = { key: string; labelKey: DictKey; href: string; mega?: MegaItem[] };
 
 const navItems: NavItem[] = [
-  { label: "Equipos", href: "#equipos", mega: equiposItems },
-  { label: "Categorías", href: "#categorias", mega: categoriasItems },
-  { label: "Servicios", href: "#servicios" },
-  { label: "Nosotros", href: "#nosotros" },
-  { label: "Contacto", href: "#contacto" },
+  { key: "equipos", labelKey: "nav.equipos", href: "#equipos", mega: equiposItems },
+  { key: "categorias", labelKey: "nav.categorias", href: "#categorias", mega: categoriasItems },
+  { key: "servicios", labelKey: "nav.servicios", href: "#servicios" },
+  { key: "nosotros", labelKey: "nav.nosotros", href: "#nosotros" },
+  { key: "contacto", labelKey: "nav.contacto", href: "#contacto" },
 ];
+
+const LangToggle = ({ scrolled }: { scrolled: boolean }) => {
+  const { lang, setLang, t } = useI18n();
+  return (
+    <button
+      onClick={() => setLang(lang === "es" ? "en" : "es")}
+      aria-label={t("lang.aria")}
+      className={cn(
+        "flex items-center gap-1.5 text-xs font-semibold tracking-wide rounded-full px-3 h-8 border transition-colors",
+        scrolled
+          ? "border-border text-foreground hover:bg-muted"
+          : "border-white/20 text-white/90 hover:bg-white/10"
+      )}
+    >
+      <Languages className="w-3.5 h-3.5" />
+      <span className="uppercase">{lang === "es" ? "EN" : "ES"}</span>
+    </button>
+  );
+};
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [openMega, setOpenMega] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("top");
+  const { t } = useI18n();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -86,13 +110,12 @@ export const Navbar = () => {
       <div className="container mx-auto h-[72px] flex items-center justify-between gap-6">
         <Logo light={!scrolled} />
 
-        {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-8">
           {navItems.map((item) => (
             <div
-              key={item.label}
+              key={item.key}
               className="relative"
-              onMouseEnter={() => item.mega && setOpenMega(item.label)}
+              onMouseEnter={() => item.mega && setOpenMega(item.key)}
               onMouseLeave={() => setOpenMega(null)}
             >
               <a
@@ -103,19 +126,19 @@ export const Navbar = () => {
                   scrolled ? "text-foreground hover:text-primary" : "text-white/90 hover:text-white"
                 )}
               >
-                {item.label}
+                {t(item.labelKey)}
                 {item.mega && (
                   <ChevronDown
                     className={cn(
                       "w-3.5 h-3.5 transition-transform duration-300",
-                      openMega === item.label && "rotate-180"
+                      openMega === item.key && "rotate-180"
                     )}
                   />
                 )}
               </a>
 
               <AnimatePresence>
-                {item.mega && openMega === item.label && (
+                {item.mega && openMega === item.key && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -126,7 +149,7 @@ export const Navbar = () => {
                     <div className="bg-background border border-border rounded-2xl shadow-card p-6 grid grid-cols-2 gap-2">
                       {item.mega.map((m) => (
                         <a
-                          key={m.name}
+                          key={m.nameKey}
                           href={m.href}
                           className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted transition-colors"
                         >
@@ -134,8 +157,8 @@ export const Navbar = () => {
                             <m.icon className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="font-semibold text-sm text-foreground">{m.name}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">{m.desc}</div>
+                            <div className="font-semibold text-sm text-foreground">{t(m.nameKey)}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{t(m.descKey)}</div>
                           </div>
                         </a>
                       ))}
@@ -147,8 +170,7 @@ export const Navbar = () => {
           ))}
         </nav>
 
-        {/* Right */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
           <a
             href="tel:+18001234567"
             className={cn(
@@ -159,27 +181,30 @@ export const Navbar = () => {
             <Phone className="w-3.5 h-3.5" />
             +1 (800) 123-4567
           </a>
+          <LangToggle scrolled={scrolled} />
           <Button
             asChild
             className="rounded-full bg-accent hover:bg-accent-hover text-accent-foreground font-semibold px-5 h-10 shadow-glow hover:scale-[1.03] transition-transform"
           >
             <a href="#contacto">
-              Solicitar Cotización
+              {t("nav.cta")}
               <ArrowRight className="w-4 h-4 ml-1" />
             </a>
           </Button>
         </div>
 
-        <button
-          onClick={() => setMobileOpen(true)}
-          className={cn("lg:hidden p-2 -mr-2", scrolled ? "text-foreground" : "text-white")}
-          aria-label="Abrir menú"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
+        <div className="lg:hidden flex items-center gap-2">
+          <LangToggle scrolled={scrolled} />
+          <button
+            onClick={() => setMobileOpen(true)}
+            className={cn("p-2 -mr-2", scrolled ? "text-foreground" : "text-white")}
+            aria-label={t("nav.menu_open")}
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -199,19 +224,19 @@ export const Navbar = () => {
             >
               <div className="h-[72px] flex items-center justify-between px-6 border-b border-border">
                 <Logo />
-                <button onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">
+                <button onClick={() => setMobileOpen(false)} aria-label={t("nav.menu_close")}>
                   <X className="w-6 h-6 text-foreground" />
                 </button>
               </div>
               <nav className="flex-1 overflow-y-auto p-6 flex flex-col gap-1">
                 {navItems.map((item) => (
                   <a
-                    key={item.label}
+                    key={item.key}
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className="py-3 px-2 text-lg font-semibold text-foreground hover:text-primary border-b border-border/50"
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </a>
                 ))}
                 <a href="tel:+18001234567" className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -224,7 +249,7 @@ export const Navbar = () => {
                   className="w-full rounded-full bg-accent hover:bg-accent-hover text-accent-foreground font-semibold h-12"
                 >
                   <a href="#contacto" onClick={() => setMobileOpen(false)}>
-                    Solicitar Cotización <ArrowRight className="w-4 h-4 ml-1" />
+                    {t("nav.cta")} <ArrowRight className="w-4 h-4 ml-1" />
                   </a>
                 </Button>
               </div>
