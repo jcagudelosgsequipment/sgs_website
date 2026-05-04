@@ -120,7 +120,7 @@ export const Navbar = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+                    transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] as const }}
                     className="absolute left-1/2 -translate-x-1/2 top-full pt-4 w-[640px]"
                   >
                     <div className="bg-background border border-border rounded-2xl shadow-card p-6 grid grid-cols-2 gap-2">
