@@ -1,6 +1,7 @@
 import { motion, type Variants } from "framer-motion";
 import { ArrowRight, PlayCircle, Check, ChevronDown, Cog, Shield, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
@@ -14,6 +15,7 @@ const fadeUp: Variants = {
 };
 
 export const HeroSection = () => {
+  const { t } = useI18n();
   return (
     <section
       id="top"
@@ -51,16 +53,16 @@ export const HeroSection = () => {
             >
               <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />
               <span className="text-xs font-medium tracking-wide text-white/85 uppercase">
-                Líderes en Maquinaria Industrial
+                {t("hero.badge")}
               </span>
             </motion.div>
 
             <h1 className="mt-6 font-display font-extrabold tracking-[-0.03em] text-[44px] sm:text-6xl lg:text-[78px] leading-[1.02]">
               <motion.span variants={fadeUp} initial="hidden" animate="show" custom={1} className="block text-white">
-                Soluciones en
+                {t("hero.h1.l1")}
               </motion.span>
               <motion.span variants={fadeUp} initial="hidden" animate="show" custom={2} className="block">
-                Equipos <span className="text-gradient-shine">Industriales</span>
+                {t("hero.h1.l2a")} <span className="text-gradient-shine">{t("hero.h1.l2b")}</span>
               </motion.span>
             </h1>
 
@@ -71,7 +73,7 @@ export const HeroSection = () => {
               custom={3}
               className="mt-6 max-w-xl text-base lg:text-lg text-industrial-slate leading-relaxed"
             >
-              Más de 500 equipos disponibles para renta y venta. Cotización personalizada en menos de 24 horas.
+              {t("hero.sub")}
             </motion.p>
 
             <motion.div
@@ -87,7 +89,7 @@ export const HeroSection = () => {
                 className="rounded-full h-14 px-7 bg-accent hover:bg-accent-hover text-accent-foreground font-semibold text-base shadow-glow hover:scale-[1.02] transition-transform"
               >
                 <a href="#equipos">
-                  Explorar Catálogo
+                  {t("hero.cta1")}
                   <ArrowRight className="w-5 h-5 ml-1.5" />
                 </a>
               </Button>
@@ -99,7 +101,7 @@ export const HeroSection = () => {
               >
                 <a href="#video">
                   <PlayCircle className="w-5 h-5 mr-1.5" />
-                  Ver Video
+                  {t("hero.cta2")}
                 </a>
               </Button>
             </motion.div>
@@ -111,12 +113,12 @@ export const HeroSection = () => {
               custom={5}
               className="mt-10 flex flex-wrap gap-x-7 gap-y-3"
             >
-              {["Envío a toda LATAM", "Garantía certificada", "Soporte 24/7"].map((t) => (
-                <li key={t} className="flex items-center gap-2 text-sm text-white/75">
+              {(["hero.trust1", "hero.trust2", "hero.trust3"] as const).map((k) => (
+                <li key={k} className="flex items-center gap-2 text-sm text-white/75">
                   <span className="w-5 h-5 rounded-full bg-accent/20 text-accent flex items-center justify-center">
                     <Check className="w-3 h-3" strokeWidth={3} />
                   </span>
-                  {t}
+                  {t(k)}
                 </li>
               ))}
             </motion.ul>
@@ -144,28 +146,28 @@ export const HeroSection = () => {
                     <div className="absolute inset-0 grid-pattern opacity-40" />
                     <Cog className="relative w-24 h-24 text-white/20" strokeWidth={1.2} />
                     <span className="absolute top-3 left-3 text-[10px] font-bold tracking-widest text-accent uppercase bg-accent/10 border border-accent/30 px-2 py-1 rounded-full">
-                      Destacado
+                      {t("hero.featured")}
                     </span>
                   </div>
 
                   <div className="p-6">
                     <span className="inline-block text-[10px] font-bold tracking-widest text-primary-glow uppercase bg-primary-glow/10 px-2 py-1 rounded-full">
-                      Grúas
+                      {t("hero.card.cat")}
                     </span>
                     <h3 className="mt-3 text-xl font-bold text-white tracking-tight">
-                      Grúa Telescópica GT-500
+                      {t("hero.card.title")}
                     </h3>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
                       <div className="rounded-lg bg-white/5 border border-white/10 p-3">
                         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/50 font-medium">
-                          <Gauge className="w-3 h-3" /> Capacidad
+                          <Gauge className="w-3 h-3" /> {t("hero.card.cap")}
                         </div>
                         <div className="mt-1 text-sm font-bold text-white">50 ton</div>
                       </div>
                       <div className="rounded-lg bg-white/5 border border-white/10 p-3">
                         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/50 font-medium">
-                          <Shield className="w-3 h-3" /> Alcance
+                          <Shield className="w-3 h-3" /> {t("hero.card.reach")}
                         </div>
                         <div className="mt-1 text-sm font-bold text-white">40 m</div>
                       </div>
@@ -176,7 +178,7 @@ export const HeroSection = () => {
                       className="mt-5 w-full rounded-full h-11 bg-accent hover:bg-accent-hover text-accent-foreground font-semibold"
                     >
                       <a href="#contacto">
-                        Cotizar Ahora
+                        {t("hero.card.cta")}
                         <ArrowRight className="w-4 h-4 ml-1" />
                       </a>
                     </Button>
@@ -195,7 +197,7 @@ export const HeroSection = () => {
           transition={{ delay: 1.4, duration: 0.6 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/60 hover:text-white transition-colors"
         >
-          <span className="text-[10px] font-medium tracking-[0.2em] uppercase">Descubre más</span>
+          <span className="text-[10px] font-medium tracking-[0.2em] uppercase">{t("hero.scroll")}</span>
           <ChevronDown className="w-4 h-4 animate-bounce-soft" />
         </motion.a>
       </div>
