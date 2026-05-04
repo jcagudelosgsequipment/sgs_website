@@ -1,4 +1,5 @@
 import { motion, type Variants } from "framer-motion";
+import { Link } from "react-router-dom";
 import { ArrowRight, PlayCircle, Check, ChevronDown, Cog, Shield, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
@@ -61,8 +62,29 @@ export const HeroSection = () => {
               <motion.span variants={fadeUp} initial="hidden" animate="show" custom={1} className="block text-white">
                 {t("hero.h1.l1")}
               </motion.span>
+              
+              {/* CORRECCIÓN APLICADA AQUÍ */}
               <motion.span variants={fadeUp} initial="hidden" animate="show" custom={2} className="block">
-                {t("hero.h1.l2a")} <span className="text-gradient-shine">{t("hero.h1.l2b")}</span>
+                <motion.span
+                  className="inline-block text-transparent bg-clip-text"
+                  style={{
+                    backgroundImage: "linear-gradient(to right, #FFFFFF 35%, hsl(var(--accent)) 50%, #FFFFFF 65%)",
+                    backgroundColor: "#FFFFFF", // EL SALVAVIDAS: Mantiene las letras blancas cuando el gradiente se esconde
+                    backgroundSize: "300% 100%",
+                    backgroundRepeat: "no-repeat"
+                  }}
+                  animate={{
+                    backgroundPosition: ["100% 0", "-100% 0"]
+                  }}
+                  transition={{
+                    duration: 6,
+                    ease: "linear",
+                    repeat: Infinity,
+                    repeatDelay: 0.5,
+                  }}
+                >
+                  {t("hero.h1.l2a")} {t("hero.h1.l2b")}
+                </motion.span>
               </motion.span>
             </h1>
 
@@ -88,10 +110,10 @@ export const HeroSection = () => {
                 size="lg"
                 className="rounded-full h-14 px-7 bg-accent hover:bg-accent-hover text-accent-foreground font-semibold text-base shadow-glow hover:scale-[1.02] transition-transform"
               >
-                <a href="#equipos">
+                <Link to="/equipos">
                   {t("hero.cta1")}
                   <ArrowRight className="w-5 h-5 ml-1.5" />
-                </a>
+                </Link>
               </Button>
               <Button
                 asChild
@@ -177,10 +199,10 @@ export const HeroSection = () => {
                       asChild
                       className="mt-5 w-full rounded-full h-11 bg-accent hover:bg-accent-hover text-accent-foreground font-semibold"
                     >
-                      <a href="#contacto">
+                      <Link to="/contacto">
                         {t("hero.card.cta")}
                         <ArrowRight className="w-4 h-4 ml-1" />
-                      </a>
+                      </Link>
                     </Button>
                   </div>
                 </div>

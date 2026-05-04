@@ -110,7 +110,8 @@
     transition: transform 0.4s var(--transition-smooth);
   }
   .nav-underline:hover::after,
-  .nav-underline[data-active="true"]::after {
+  .nav-underline[data-active="true"]::after,
+  .nav-underline[aria-current="page"]::after {
     transform: scaleX(1);
   }
 
