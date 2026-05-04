@@ -1,13 +1,15 @@
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { ArrowRight, PlayCircle, Check, ChevronDown, Cog, Shield, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const fadeUp = {
+const EASE = [0.32, 0.72, 0, 1] as const;
+
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   show: (i: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.15, duration: 0.7, ease: [0.32, 0.72, 0, 1] },
+    transition: { delay: i * 0.15, duration: 0.7, ease: EASE },
   }),
 };
 
