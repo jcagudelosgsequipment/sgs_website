@@ -18,6 +18,27 @@ export type EquipmentCategory =
   | "Lektro"
   | "Scissor Lift";
 
+export const EQUIPMENT_CATEGORIES: readonly EquipmentCategory[] = [
+  "Belt Loader",
+  "AC GPU",
+  "DC GPU",
+  "AC/DC GPU",
+  "Baggage Tractor",
+  "Passenger Stair",
+  "Cargo Loader",
+  "Air Conditioner (ACU)",
+  "Air Start (ASU)",
+  "Push Back Tractor",
+  "Towbar",
+  "Aerial Equipment",
+  "Lavatory",
+  "Water Service",
+  "Dollies",
+  "Baggage Carts",
+  "Lektro",
+  "Scissor Lift",
+];
+
 export interface EquipmentItem {
   manufacturer: string;
   model: string;
