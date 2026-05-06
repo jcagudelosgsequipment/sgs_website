@@ -15,6 +15,12 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+const Parts = () => (
+  <section className="container mx-auto min-h-[50vh] flex items-center justify-center px-4 py-16">
+    <p className="text-center text-lg text-muted-foreground">Vista de Parts en construcción</p>
+  </section>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -28,6 +34,7 @@ const App = () => (
               <Route path="equipos" element={<Equipos />} />
               <Route path="categorias" element={<Categorias />} />
               <Route path="servicios" element={<Servicios />} />
+              <Route path="parts" element={<Parts />} />
               <Route path="nosotros" element={<Nosotros />} />
               <Route path="contacto" element={<Contacto />} />
             </Route>

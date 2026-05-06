@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,8 +13,6 @@ import {
   Wind,
   Zap,
   Droplets,
-  Layers,
-  Wrench,
   Languages,
 } from "lucide-react";
 import { Logo } from "./Logo";
@@ -33,21 +31,19 @@ const equiposItems: MegaItem[] = [
   { icon: Droplets, nameKey: "eq.bombas", descKey: "eq.bombas.d", href: "/equipos" },
 ];
 
-const categoriasItems: MegaItem[] = [
-  { icon: Layers, nameKey: "cat.constr", descKey: "cat.constr.d", href: "/categorias" },
-  { icon: Wrench, nameKey: "cat.min", descKey: "cat.min.d", href: "/categorias" },
-  { icon: Truck, nameKey: "cat.log", descKey: "cat.log.d", href: "/categorias" },
-  { icon: Zap, nameKey: "cat.energy", descKey: "cat.energy.d", href: "/categorias" },
-];
-
 type NavItem = { key: string; labelKey: DictKey; href: string; mega?: MegaItem[] };
 
 const navItems: NavItem[] = [
   { key: "equipos", labelKey: "nav.equipos", href: "/equipos", mega: equiposItems },
-  { key: "categorias", labelKey: "nav.categorias", href: "/categorias", mega: categoriasItems },
   { key: "servicios", labelKey: "nav.servicios", href: "/servicios" },
   { key: "nosotros", labelKey: "nav.nosotros", href: "/nosotros" },
   { key: "contacto", labelKey: "nav.contacto", href: "/contacto" },
+];
+
+const serviceDropdownItems = [
+  { label: "GS Training", href: "/servicios" },
+  { label: "Parts", href: "/parts" },
+  { label: "Repair Services", href: "/servicios" },
 ];
 
 const LangToggle = ({ scrolled }: { scrolled: boolean }) => {
@@ -72,9 +68,11 @@ const LangToggle = ({ scrolled }: { scrolled: boolean }) => {
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [openMega, setOpenMega] = useState<string | null>(null);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useI18n();
   const { pathname } = useLocation();
+  const servicesDropdownId = useId();
   const isHome = pathname === "/";
   const solidNav = scrolled || !isHome;
 
@@ -105,23 +103,82 @@ export const Navbar = () => {
               onMouseEnter={() => item.mega && setOpenMega(item.key)}
               onMouseLeave={() => setOpenMega(null)}
             >
-              <NavLink
-                to={item.href}
-                className={cn(
-                  "nav-underline flex items-center gap-1 text-sm font-medium tracking-tight transition-colors py-2",
-                  solidNav ? "text-foreground hover:text-primary" : "text-white/90 hover:text-white"
-                )}
-              >
-                {t(item.labelKey)}
-                {item.mega && (
-                  <ChevronDown
+              {item.key === "servicios" ? (
+                <>
+                  <button
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded={servicesOpen}
+                    aria-controls={servicesDropdownId}
+                    onClick={() => setServicesOpen((prev) => !prev)}
+                    onMouseEnter={() => setServicesOpen(true)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        setServicesOpen(false);
+                      }
+                    }}
                     className={cn(
-                      "w-3.5 h-3.5 transition-transform duration-300",
-                      openMega === item.key && "rotate-180"
+                      "nav-underline flex items-center gap-1 text-sm font-medium tracking-tight transition-colors py-2",
+                      solidNav ? "text-foreground hover:text-primary" : "text-white/90 hover:text-white"
                     )}
-                  />
-                )}
-              </NavLink>
+                  >
+                    {t(item.labelKey)}
+                    <ChevronDown
+                      className={cn(
+                        "w-3.5 h-3.5 transition-transform duration-300",
+                        servicesOpen && "rotate-180"
+                      )}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {servicesOpen && (
+                      <motion.div
+                        id={servicesDropdownId}
+                        role="menu"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        onMouseLeave={() => setServicesOpen(false)}
+                        className="absolute left-0 top-full pt-3 min-w-[220px]"
+                      >
+                        <div className="bg-background border border-border rounded-xl shadow-card p-2">
+                          {serviceDropdownItems.map((dropdownItem) => (
+                            <Link
+                              key={dropdownItem.label}
+                              to={dropdownItem.href}
+                              role="menuitem"
+                              onClick={() => setServicesOpen(false)}
+                              className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              {dropdownItem.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              ) : (
+                <NavLink
+                  to={item.href}
+                  className={cn(
+                    "nav-underline flex items-center gap-1 text-sm font-medium tracking-tight transition-colors py-2",
+                    solidNav ? "text-foreground hover:text-primary" : "text-white/90 hover:text-white"
+                  )}
+                >
+                  {t(item.labelKey)}
+                  {item.mega && (
+                    <ChevronDown
+                      className={cn(
+                        "w-3.5 h-3.5 transition-transform duration-300",
+                        openMega === item.key && "rotate-180"
+                      )}
+                    />
+                  )}
+                </NavLink>
+              )}
 
               <AnimatePresence>
                 {item.mega && openMega === item.key && (
@@ -216,14 +273,32 @@ export const Navbar = () => {
               </div>
               <nav className="flex-1 overflow-y-auto p-6 flex flex-col gap-1">
                 {navItems.map((item) => (
-                  <NavLink
-                    key={item.key}
-                    to={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="py-3 px-2 text-lg font-semibold text-foreground hover:text-primary border-b border-border/50"
-                  >
-                    {t(item.labelKey)}
-                  </NavLink>
+                  item.key === "servicios" ? (
+                    <div key={item.key} className="border-b border-border/50 py-3 px-2">
+                      <div className="text-lg font-semibold text-foreground">{t(item.labelKey)}</div>
+                      <div className="mt-2 flex flex-col">
+                        {serviceDropdownItems.map((dropdownItem) => (
+                          <NavLink
+                            key={dropdownItem.label}
+                            to={dropdownItem.href}
+                            onClick={() => setMobileOpen(false)}
+                            className="py-2 text-sm text-muted-foreground hover:text-primary"
+                          >
+                            {dropdownItem.label}
+                          </NavLink>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <NavLink
+                      key={item.key}
+                      to={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className="py-3 px-2 text-lg font-semibold text-foreground hover:text-primary border-b border-border/50"
+                    >
+                      {t(item.labelKey)}
+                    </NavLink>
+                  )
                 ))}
                 <a href="tel:+18001234567" className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
                   <Phone className="w-4 h-4" /> +1 (800) 123-4567
