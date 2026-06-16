@@ -1,5 +1,5 @@
-import { SectionPlaceholder } from "@/components/sgs/SectionPlaceholder";
+import AboutUs from "@/components/sgs/AboutUs";
 
-const Nosotros = () => <SectionPlaceholder titleKey="sec.nosotros" />;
+const Nosotros = () => <AboutUs />;
 
 export default Nosotros;

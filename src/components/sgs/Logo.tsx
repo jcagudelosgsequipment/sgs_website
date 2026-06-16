@@ -1,16 +1,19 @@
 import { Link } from "react-router-dom";
 
 export const Logo = ({ light = false }: { light?: boolean }) => (
-  <Link to="/" className="flex items-center gap-2 group" aria-label="SGS Equipment">
-    <div className="relative w-9 h-9 rounded-md bg-primary flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <span className="relative text-primary-foreground font-black text-sm tracking-tight">SGS</span>
-    </div>
-    <div className="flex items-baseline gap-1.5 leading-none">
-      <span className="font-black text-lg tracking-tight text-primary">SGS</span>
-      <span className={`font-semibold text-base tracking-tight ${light ? "text-white/90" : "text-secondary"}`}>
-        Equipment
-      </span>
-    </div>
+  <Link
+    to="/"
+    className="flex items-center group transition-opacity hover:opacity-90"
+    aria-label="SGS Equipment"
+  >
+    <img
+      src="/SGS_LOGO.webp"
+      alt="SGS Equipment"
+      className={`h-14 w-auto md:h-16 lg:h-[68px] ${
+        light
+          ? "drop-shadow-[0_4px_22px_rgba(255,255,255,0.35)] brightness-110"
+          : "drop-shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+      }`}
+    />
   </Link>
 );

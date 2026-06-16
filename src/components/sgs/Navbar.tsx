@@ -7,44 +7,63 @@ import {
   X,
   ChevronDown,
   ArrowRight,
-  ConstructionIcon,
-  Truck,
-  Forklift,
-  Wind,
-  Zap,
-  Droplets,
+  Plane,
   Languages,
+  ShoppingCart,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useHomeWatermark } from "@/contexts/HomeWatermarkContext";
+import { useQuote } from "@/contexts/QuoteContext";
 import { useI18n, type DictKey } from "@/lib/i18n";
+import { EQUIPMENT_CATEGORIES } from "@/types/equipment";
 
-type MegaItem = { icon: typeof Truck; nameKey: DictKey; descKey: DictKey; href: string };
+type NavDropdown = "equipos" | "servicios";
 
-const equiposItems: MegaItem[] = [
-  { icon: ConstructionIcon, nameKey: "eq.gruas", descKey: "eq.gruas.d", href: "/equipos" },
-  { icon: Truck, nameKey: "eq.exc", descKey: "eq.exc.d", href: "/equipos" },
-  { icon: Forklift, nameKey: "eq.mont", descKey: "eq.mont.d", href: "/equipos" },
-  { icon: Wind, nameKey: "eq.comp", descKey: "eq.comp.d", href: "/equipos" },
-  { icon: Zap, nameKey: "eq.gen", descKey: "eq.gen.d", href: "/equipos" },
-  { icon: Droplets, nameKey: "eq.bombas", descKey: "eq.bombas.d", href: "/equipos" },
-];
-
-type NavItem = { key: string; labelKey: DictKey; href: string; mega?: MegaItem[] };
+type NavItem = { key: NavDropdown | string; labelKey: DictKey; href: string; dropdown?: NavDropdown };
 
 const navItems: NavItem[] = [
-  { key: "equipos", labelKey: "nav.equipos", href: "/equipos", mega: equiposItems },
-  { key: "servicios", labelKey: "nav.servicios", href: "/servicios" },
+  { key: "equipos", labelKey: "nav.equipos", href: "/equipos", dropdown: "equipos" },
+  { key: "servicios", labelKey: "nav.servicios", href: "/servicios", dropdown: "servicios" },
   { key: "nosotros", labelKey: "nav.nosotros", href: "/nosotros" },
   { key: "contacto", labelKey: "nav.contacto", href: "/contacto" },
 ];
 
+const PARTS_URL = "https://gseparts.us";
+
 const serviceDropdownItems = [
   { label: "GS Training", href: "/servicios" },
-  { label: "Parts", href: "/parts" },
-  { label: "Repair Services", href: "/servicios" },
+  { label: "Parts", href: PARTS_URL, external: true },
+  { label: "Repair Services", href: "/servicios/reparacion" },
 ];
+
+const QuoteCartLink = ({ solidNav }: { solidNav: boolean }) => {
+  const { quoteItems } = useQuote();
+  const count = quoteItems.length;
+  const hasItems = count > 0;
+
+  return (
+    <Link
+      to="/solicitud-cotizacion"
+      aria-label={hasItems ? `Cotización: ${count} equipos` : "Carrito de cotización vacío"}
+      className={cn(
+        "relative flex h-10 w-10 items-center justify-center rounded-full transition-colors",
+        hasItems ? "opacity-100" : "opacity-40",
+        solidNav
+          ? "text-foreground hover:bg-muted hover:text-primary"
+          : "text-white/90 hover:bg-white/10 hover:text-white"
+      )}
+    >
+      <ShoppingCart className="h-5 w-5" aria-hidden />
+      {hasItems ? (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold leading-none text-white">
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+    </Link>
+  );
+};
 
 const LangToggle = ({ scrolled }: { scrolled: boolean }) => {
   const { lang, setLang, t } = useI18n();
@@ -67,14 +86,15 @@ const LangToggle = ({ scrolled }: { scrolled: boolean }) => {
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [openMega, setOpenMega] = useState<string | null>(null);
-  const [servicesOpen, setServicesOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<NavDropdown | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useI18n();
   const { pathname } = useLocation();
   const servicesDropdownId = useId();
+  const { watermarkVisible } = useHomeWatermark();
   const isHome = pathname === "/";
   const solidNav = scrolled || !isHome;
+  const showNavbarLogo = !isHome || !watermarkVisible;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -92,30 +112,35 @@ export const Navbar = () => {
           : "bg-transparent"
       )}
     >
-      <div className="container mx-auto h-[72px] flex items-center justify-between gap-6">
-        <Logo light={!solidNav} />
+      <div className="container mx-auto h-[88px] flex items-center justify-between gap-6">
+        <div
+          className={cn(
+            "transition-opacity duration-300",
+            showNavbarLogo ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
+          <Logo light={!solidNav} />
+        </div>
 
         <nav className="hidden lg:flex items-center gap-8">
-          {navItems.map((item) => (
-            <div
-              key={item.key}
-              className="relative"
-              onMouseEnter={() => item.mega && setOpenMega(item.key)}
-              onMouseLeave={() => setOpenMega(null)}
-            >
-              {item.key === "servicios" ? (
-                <>
-                  <button
-                    type="button"
+          {navItems.map((item) => {
+            const isDropdownOpen = item.dropdown != null && openDropdown === item.dropdown;
+
+            return (
+              <div
+                key={item.key}
+                className="relative"
+                onMouseEnter={() => item.dropdown && setOpenDropdown(item.dropdown)}
+                onMouseLeave={() => setOpenDropdown(null)}
+              >
+                {item.dropdown ? (
+                  <NavLink
+                    to={item.href}
                     aria-haspopup="menu"
-                    aria-expanded={servicesOpen}
-                    aria-controls={servicesDropdownId}
-                    onClick={() => setServicesOpen((prev) => !prev)}
-                    onMouseEnter={() => setServicesOpen(true)}
+                    aria-expanded={isDropdownOpen}
+                    aria-controls={item.dropdown === "servicios" ? servicesDropdownId : undefined}
                     onKeyDown={(event) => {
-                      if (event.key === "Escape") {
-                        setServicesOpen(false);
-                      }
+                      if (event.key === "Escape") setOpenDropdown(null);
                     }}
                     className={cn(
                       "nav-underline flex items-center gap-1 text-sm font-medium tracking-tight transition-colors py-2",
@@ -126,91 +151,98 @@ export const Navbar = () => {
                     <ChevronDown
                       className={cn(
                         "w-3.5 h-3.5 transition-transform duration-300",
-                        servicesOpen && "rotate-180"
+                        isDropdownOpen && "rotate-180"
                       )}
                     />
-                  </button>
+                  </NavLink>
+                ) : (
+                  <NavLink
+                    to={item.href}
+                    className={cn(
+                      "nav-underline flex items-center gap-1 text-sm font-medium tracking-tight transition-colors py-2",
+                      solidNav ? "text-foreground hover:text-primary" : "text-white/90 hover:text-white"
+                    )}
+                  >
+                    {t(item.labelKey)}
+                  </NavLink>
+                )}
 
-                  <AnimatePresence>
-                    {servicesOpen && (
-                      <motion.div
-                        id={servicesDropdownId}
-                        role="menu"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        onMouseLeave={() => setServicesOpen(false)}
-                        className="absolute left-0 top-full pt-3 min-w-[220px]"
-                      >
-                        <div className="bg-background border border-border rounded-xl shadow-card p-2">
-                          {serviceDropdownItems.map((dropdownItem) => (
+                <AnimatePresence>
+                  {item.dropdown === "servicios" && isDropdownOpen && (
+                    <motion.div
+                      id={servicesDropdownId}
+                      role="menu"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="absolute left-0 top-full pt-3 min-w-[220px] z-50"
+                    >
+                      <div className="bg-background border border-border rounded-xl shadow-card p-2">
+                        {serviceDropdownItems.map((dropdownItem) =>
+                          dropdownItem.external ? (
+                            <a
+                              key={dropdownItem.label}
+                              href={dropdownItem.href}
+                              role="menuitem"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => setOpenDropdown(null)}
+                              className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              {dropdownItem.label}
+                            </a>
+                          ) : (
                             <Link
                               key={dropdownItem.label}
                               to={dropdownItem.href}
                               role="menuitem"
-                              onClick={() => setServicesOpen(false)}
+                              onClick={() => setOpenDropdown(null)}
                               className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                             >
                               {dropdownItem.label}
                             </Link>
+                          )
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {item.dropdown === "equipos" && isDropdownOpen && (
+                    <motion.div
+                      role="menu"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] as const }}
+                      className="absolute left-0 top-full pt-3 w-[720px] z-50"
+                    >
+                      <div className="bg-background border border-border rounded-2xl shadow-card p-4 max-h-[min(70vh,420px)] overflow-y-auto">
+                        <div className="grid grid-cols-3 gap-1">
+                          {EQUIPMENT_CATEGORIES.map((category) => (
+                            <Link
+                              key={category}
+                              to={`/equipos?category=${encodeURIComponent(category)}`}
+                              role="menuitem"
+                              onClick={() => setOpenDropdown(null)}
+                              className="group flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-muted transition-colors"
+                            >
+                              <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                                <Plane className="w-4 h-4" />
+                              </div>
+                              <span className="font-medium text-sm text-foreground leading-tight">
+                                {category}
+                              </span>
+                            </Link>
                           ))}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              ) : (
-                <NavLink
-                  to={item.href}
-                  className={cn(
-                    "nav-underline flex items-center gap-1 text-sm font-medium tracking-tight transition-colors py-2",
-                    solidNav ? "text-foreground hover:text-primary" : "text-white/90 hover:text-white"
+                      </div>
+                    </motion.div>
                   )}
-                >
-                  {t(item.labelKey)}
-                  {item.mega && (
-                    <ChevronDown
-                      className={cn(
-                        "w-3.5 h-3.5 transition-transform duration-300",
-                        openMega === item.key && "rotate-180"
-                      )}
-                    />
-                  )}
-                </NavLink>
-              )}
-
-              <AnimatePresence>
-                {item.mega && openMega === item.key && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] as const }}
-                    className="absolute left-1/2 -translate-x-1/2 top-full pt-4 w-[640px]"
-                  >
-                    <div className="bg-background border border-border rounded-2xl shadow-card p-6 grid grid-cols-2 gap-2">
-                      {item.mega.map((m) => (
-                        <Link
-                          key={m.nameKey}
-                          to={m.href}
-                          className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted transition-colors"
-                        >
-                          <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-                            <m.icon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="font-semibold text-sm text-foreground">{t(m.nameKey)}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">{t(m.descKey)}</div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
+                </AnimatePresence>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -225,6 +257,7 @@ export const Navbar = () => {
             +1 (800) 123-4567
           </a>
           <LangToggle scrolled={solidNav} />
+          <QuoteCartLink solidNav={solidNav} />
           <Button
             asChild
             className="rounded-full bg-accent hover:bg-accent-hover text-accent-foreground font-semibold px-5 h-10 shadow-glow hover:scale-[1.03] transition-transform"
@@ -237,6 +270,7 @@ export const Navbar = () => {
         </div>
 
         <div className="lg:hidden flex items-center gap-2">
+          <QuoteCartLink solidNav={solidNav} />
           <LangToggle scrolled={solidNav} />
           <button
             onClick={() => setMobileOpen(true)}
@@ -265,26 +299,61 @@ export const Navbar = () => {
               transition={{ type: "spring", damping: 28, stiffness: 240 }}
               className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-background z-50 lg:hidden flex flex-col"
             >
-              <div className="h-[72px] flex items-center justify-between px-6 border-b border-border">
+              <div className="h-[88px] flex items-center justify-between px-6 border-b border-border">
                 <Logo />
                 <button onClick={() => setMobileOpen(false)} aria-label={t("nav.menu_close")}>
                   <X className="w-6 h-6 text-foreground" />
                 </button>
               </div>
               <nav className="flex-1 overflow-y-auto p-6 flex flex-col gap-1">
-                {navItems.map((item) => (
-                  item.key === "servicios" ? (
+                {navItems.map((item) =>
+                  item.dropdown === "servicios" ? (
                     <div key={item.key} className="border-b border-border/50 py-3 px-2">
                       <div className="text-lg font-semibold text-foreground">{t(item.labelKey)}</div>
                       <div className="mt-2 flex flex-col">
-                        {serviceDropdownItems.map((dropdownItem) => (
+                        {serviceDropdownItems.map((dropdownItem) =>
+                          dropdownItem.external ? (
+                            <a
+                              key={dropdownItem.label}
+                              href={dropdownItem.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => setMobileOpen(false)}
+                              className="py-2 text-sm text-muted-foreground hover:text-primary"
+                            >
+                              {dropdownItem.label}
+                            </a>
+                          ) : (
+                            <NavLink
+                              key={dropdownItem.label}
+                              to={dropdownItem.href}
+                              onClick={() => setMobileOpen(false)}
+                              className="py-2 text-sm text-muted-foreground hover:text-primary"
+                            >
+                              {dropdownItem.label}
+                            </NavLink>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ) : item.dropdown === "equipos" ? (
+                    <div key={item.key} className="border-b border-border/50 py-3 px-2">
+                      <NavLink
+                        to={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="text-lg font-semibold text-foreground hover:text-primary"
+                      >
+                        {t(item.labelKey)}
+                      </NavLink>
+                      <div className="mt-2 flex flex-col">
+                        {EQUIPMENT_CATEGORIES.map((category) => (
                           <NavLink
-                            key={dropdownItem.label}
-                            to={dropdownItem.href}
+                            key={category}
+                            to={`/equipos?category=${encodeURIComponent(category)}`}
                             onClick={() => setMobileOpen(false)}
                             className="py-2 text-sm text-muted-foreground hover:text-primary"
                           >
-                            {dropdownItem.label}
+                            {category}
                           </NavLink>
                         ))}
                       </div>
@@ -299,7 +368,7 @@ export const Navbar = () => {
                       {t(item.labelKey)}
                     </NavLink>
                   )
-                ))}
+                )}
                 <a href="tel:+18001234567" className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
                   <Phone className="w-4 h-4" /> +1 (800) 123-4567
                 </a>

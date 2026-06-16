@@ -11,6 +11,10 @@ export default {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      screens: {
+        "hero-tall": { raw: "(min-height: 860px)" },
+        "hero-wide-tall": { raw: "(min-width: 1280px) and (min-height: 900px)" },
+      },
       fontFamily: {
         display: ["Inter", "system-ui", "sans-serif"],
         sans: ["Inter", "system-ui", "sans-serif"],

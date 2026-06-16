@@ -40,13 +40,17 @@ export const EQUIPMENT_CATEGORIES: readonly EquipmentCategory[] = [
 ];
 
 export interface EquipmentItem {
+  id: string | number;
+  /** Work order (SharePoint Title); used for gallery folder key */
+  title?: string;
   manufacturer: string;
   model: string;
-  mfgYear: string;
-  equipmentType: EquipmentCategory;
+  mfgYear?: string;
+  equipmentType: string;
   capacity: string;
+  fuelType?: string;
   photoUrl: string;
   displayName: string;
   isFeatured: boolean;
-  addToWebsite: boolean;
+  addToWebsite?: boolean;
 }

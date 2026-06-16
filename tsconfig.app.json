@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "types": ["vitest/globals"],
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
@@ -22,6 +21,7 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
