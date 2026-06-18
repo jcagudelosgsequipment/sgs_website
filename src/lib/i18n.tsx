@@ -426,6 +426,7 @@ export const dict = {
   "equipment.spec.make": { es: "Fabricante", en: "Make" },
   "equipment.spec.model": { es: "Modelo", en: "Model" },
   "equipment.spec.mfgYear": { es: "Año de fabricación", en: "Mfr year" },
+  "equipment.spec.status": { es: "Estado", en: "Status" },
   "equipment.spec.capacity": { es: "Capacidad", en: "Capacity" },
   "equipment.spec.fuelType": { es: "Tipo de combustible", en: "Fuel type" },
   "equipment.spec.category": { es: "Categoría", en: "Category" },

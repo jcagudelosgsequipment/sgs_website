@@ -46,6 +46,7 @@ export interface EquipmentItem {
   manufacturer: string;
   model: string;
   mfgYear?: string;
+  status?: string;
   equipmentType: string;
   capacity: string;
   fuelType?: string;

@@ -45,6 +45,73 @@ async function getSiteId(accessToken) {
   return cachedSiteId;
 }
 
+function parseSharePointChoice(value) {
+  if (value == null) return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => parseSharePointChoice(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    if (Array.isArray(value.results)) {
+      return value.results
+        .map((item) => parseSharePointChoice(item))
+        .filter(Boolean)
+        .join(", ");
+    }
+    for (const key of ["Label", "Value", "lookupValue", "DisplayName"]) {
+      if (typeof value[key] === "string" && value[key].trim()) return value[key].trim();
+    }
+    return "";
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.includes(";")) {
+      return trimmed
+        .split(";")
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+    return trimmed;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") return String(value).trim();
+  return "";
+}
+
+function getStatusRaw(fields) {
+  if (fields.Status !== undefined) return fields.Status;
+  for (const [key, value] of Object.entries(fields)) {
+    if (key.toLowerCase() === "status") return value;
+  }
+  return null;
+}
+
+function parseMfgYear(fields) {
+  const raw =
+    fields.MFGDate ||
+    fields.MFG_x0020_Date ||
+    fields.Year ||
+    fields.MfgYear ||
+    fields.ModelYear ||
+    fields.Manufacturing_x0020_Year ||
+    "";
+
+  if (!raw) return "";
+
+  if (typeof raw === "string" && raw.includes("T")) {
+    const year = new Date(raw).getFullYear();
+    return Number.isFinite(year) ? String(year) : "";
+  }
+
+  return String(raw).trim();
+}
+
 // ----------------------------------------------------
 // RUTAS DEL BACKEND
 // ----------------------------------------------------
@@ -73,12 +140,8 @@ app.get('/api/equipment', async (req, res) => {
         title: workOrder,
         manufacturer: f.Manufacturer || "",
         model: f.Model || "",
-        mfgYear:
-          f.Year ||
-          f.MfgYear ||
-          f.ModelYear ||
-          f.Manufacturing_x0020_Year ||
-          "",
+        mfgYear: parseMfgYear(f),
+        status: parseSharePointChoice(getStatusRaw(f)),
         equipmentType: rawCategory,
         fuelType: f.FuelType || "",
         capacity: f.Capacity || "N/A",

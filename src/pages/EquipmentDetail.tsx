@@ -6,6 +6,12 @@ import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { fetchEquipment } from "@/services/equipmentService";
 import { useQuote } from "@/contexts/QuoteContext";
 import { useI18n } from "@/lib/i18n";
+import {
+  getEquipmentStatusTone,
+  getStatusToneForLabel,
+  parseEquipmentStatuses,
+  STATUS_TONE_CLASSES,
+} from "@/lib/equipmentStatus";
 import { cn } from "@/lib/utils";
 import type { EquipmentItem } from "@/types/equipment";
 import { Button } from "@/components/ui/button";
@@ -168,6 +174,8 @@ const EquipmentDetail = () => {
   }
 
   const isAdded = isInQuote(equipment.id);
+  const statusItems = parseEquipmentStatuses(equipment.status);
+  const statusTone = getEquipmentStatusTone(equipment.status);
 
   return (
     <main
@@ -306,6 +314,34 @@ const EquipmentDetail = () => {
               <h2 className="mb-4 text-lg font-semibold tracking-tight text-slate-900">
                 {t("equipment.specs")}
               </h2>
+              <div
+                className={cn(
+                  "mb-4 rounded-xl border px-4 py-4 shadow-sm",
+                  STATUS_TONE_CLASSES[statusTone]
+                )}
+              >
+                <div className={specLabel}>{t("equipment.spec.status")}</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {statusItems.length > 0 ? (
+                    statusItems.map((label) => {
+                      const tone = getStatusToneForLabel(label);
+                      return (
+                        <span
+                          key={label}
+                          className={cn(
+                            "inline-flex rounded-lg border px-3 py-1.5 text-sm font-bold uppercase tracking-wide",
+                            STATUS_TONE_CLASSES[tone]
+                          )}
+                        >
+                          {label}
+                        </span>
+                      );
+                    })
+                  ) : (
+                    <span className={specValue}>—</span>
+                  )}
+                </div>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
                   { label: t("equipment.spec.workOrder"), value: woDisplay },
