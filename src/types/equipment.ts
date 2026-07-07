@@ -53,5 +53,6 @@ export interface EquipmentItem {
   photoUrl: string;
   displayName: string;
   isFeatured: boolean;
+  description?: string;
   addToWebsite?: boolean;
 }

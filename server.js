@@ -149,6 +149,7 @@ app.get('/api/equipment', async (req, res) => {
         photoUrl: workOrder ? `/api/image/${workOrder}` : `https://via.placeholder.com/400x300/e2e8f0/475569?text=Sin+WO`,
         isFeatured: f.isFeatured === true || f.isFeatured === "Yes",
         displayName: `${f.Manufacturer || ""}-${f.Model || ""} ${f.FuelType || ""} ${rawCategory} - ${workOrder}`,
+        description: f.Description || f.description || "No description available for this equipment.",
       };
     });
 

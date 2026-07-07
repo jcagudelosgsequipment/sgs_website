@@ -139,13 +139,7 @@ const EquipmentDetail = () => {
       .slice(0, 3);
   }, [allEquipment, equipment]);
 
-  const overviewText = equipment
-    ? t("equipment.overviewTemplate", {
-        manufacturer: equipment.manufacturer,
-        model: equipment.model,
-        type: translateCategory(equipment.equipmentType),
-      })
-    : "";
+  const overviewText = equipment?.description ?? "";
 
   if (listLoading) {
     return (
