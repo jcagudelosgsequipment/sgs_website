@@ -161,6 +161,7 @@ app.get('/api/equipment', async (req, res) => {
 });
 
 // 2. RUTA IMAGEN PRINCIPAL: Busca la primera foto en la carpeta WATERMARK
+// Proxea bytes (no redirect) para que el PDF/canvas puedan embeber sin CORS.
 app.get('/api/image/:wo', async (req, res) => {
   const { wo } = req.params;
   try {
@@ -178,12 +179,19 @@ app.get('/api/image/:wo', async (req, res) => {
     if (childrenResponse.data.value && childrenResponse.data.value.length > 0) {
       const file = childrenResponse.data.value[0];
       const downloadUrl = file['@microsoft.graph.downloadUrl'];
-      
+
       if (downloadUrl) {
-        return res.redirect(downloadUrl);
+        const imageResponse = await axios.get(downloadUrl, {
+          responseType: 'arraybuffer',
+          timeout: 30000,
+        });
+        const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.send(Buffer.from(imageResponse.data));
       }
     }
-    
+
     res.redirect(`https://via.placeholder.com/400x300/e2e8f0/475569?text=Carpeta+Vacia+(${wo})`);
 
   } catch (error) {

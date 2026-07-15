@@ -5,8 +5,19 @@ import { Loader2, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useQuote } from "@/contexts/QuoteContext";
 import { useI18n } from "@/lib/i18n";
+import { downloadQuotePdf, type QuoteCustomer } from "@/lib/quotePdf";
 import { cn } from "@/lib/utils";
 import type { EquipmentItem } from "@/types/equipment";
 
@@ -79,13 +90,19 @@ function QuoteSummaryItem({
 }
 
 const QuoteForm = () => {
-  const { t, translateCategory } = useI18n();
+  const { t, lang, translateCategory } = useI18n();
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { quoteItems, removeFromQuote, clearQuote } = useQuote();
   const [form, setForm] = useState<QuoteFormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pdfPromptOpen, setPdfPromptOpen] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfSnapshot, setPdfSnapshot] = useState<{
+    customer: QuoteCustomer;
+    equipment: EquipmentItem[];
+  } | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
   const hasItems = quoteItems.length > 0;
@@ -96,6 +113,11 @@ const QuoteForm = () => {
 
     setSubmitting(true);
     setError(null);
+
+    const snapshot = {
+      customer: { ...form } as QuoteCustomer,
+      equipment: [...quoteItems],
+    };
 
     try {
       let recaptchaToken: string;
@@ -128,11 +150,53 @@ const QuoteForm = () => {
 
       clearQuote();
       setForm(initialForm);
+      setPdfSnapshot(snapshot);
       setSuccess(true);
+      setPdfPromptOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("quote.error"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!pdfSnapshot || pdfDownloading) return;
+    setPdfDownloading(true);
+    try {
+      await downloadQuotePdf({
+        customer: pdfSnapshot.customer,
+        equipment: pdfSnapshot.equipment,
+        lang,
+        categoryLabel: translateCategory,
+        labels: {
+          title: t("quote.pdf.title"),
+          customerSection: t("quote.pdf.customerSection"),
+          equipmentSection: t("quote.pdf.equipmentSection"),
+          fullName: t("quote.fullName"),
+          email: t("quote.email"),
+          phone: t("quote.phone"),
+          interest: t("quote.interest"),
+          rent: t("quote.rent"),
+          buy: t("quote.buy"),
+          requestedDate: t("quote.requestedDate"),
+          manufacturer: t("quote.pdf.manufacturer"),
+          model: t("quote.pdf.model"),
+          category: t("quote.pdf.category"),
+          capacity: t("quote.pdf.capacity"),
+          year: t("quote.pdf.year"),
+          fuel: t("quote.pdf.fuel"),
+          workOrder: t("quote.pdf.workOrder"),
+          generatedAt: t("quote.pdf.generatedAt"),
+          footer: t("quote.pdf.footer"),
+          noImage: t("quote.pdf.noImage"),
+        },
+      });
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    } finally {
+      setPdfDownloading(false);
+      setPdfPromptOpen(false);
     }
   };
 
@@ -299,6 +363,35 @@ const QuoteForm = () => {
           </div>
         )}
       </div>
+
+      <AlertDialog open={pdfPromptOpen} onOpenChange={setPdfPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("quote.pdf.promptTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("quote.pdf.promptDesc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pdfDownloading}>{t("quote.pdf.no")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pdfDownloading}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDownloadPdf();
+              }}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              {pdfDownloading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("quote.pdf.downloading")}
+                </>
+              ) : (
+                t("quote.pdf.yes")
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 };
