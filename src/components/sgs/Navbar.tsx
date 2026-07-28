@@ -32,21 +32,26 @@ const navItems: NavItem[] = [
 
 const PARTS_URL = "https://gseparts.us";
 
-const serviceDropdownItems = [
-  { label: "GS Training", href: "/servicios" },
-  { label: "Parts", href: PARTS_URL, external: true },
-  { label: "Repair Services", href: "/servicios/reparacion" },
+const serviceDropdownItems: Array<
+  { labelKey: DictKey; href: string; external?: false } | { labelKey: DictKey; href: string; external: true }
+> = [
+  { labelKey: "footer.nav.training", href: "/servicios" },
+  { labelKey: "footer.nav.parts", href: PARTS_URL, external: true },
+  { labelKey: "footer.nav.repair", href: "/servicios/reparacion" },
 ];
 
 const QuoteCartLink = ({ solidNav }: { solidNav: boolean }) => {
   const { quoteItems } = useQuote();
+  const { t } = useI18n();
   const count = quoteItems.length;
   const hasItems = count > 0;
 
   return (
     <Link
       to="/solicitud-cotizacion"
-      aria-label={hasItems ? `Cotización: ${count} equipos` : "Carrito de cotización vacío"}
+      aria-label={
+        hasItems ? t("nav.quoteCart.withItems", { count: String(count) }) : t("nav.quoteCart.empty")
+      }
       className={cn(
         "relative flex h-10 w-10 items-center justify-center rounded-full transition-colors",
         hasItems ? "opacity-100" : "opacity-40",
@@ -88,7 +93,7 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<NavDropdown | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { t } = useI18n();
+  const { t, translateCategory } = useI18n();
   const { pathname } = useLocation();
   const servicesDropdownId = useId();
   const { watermarkVisible } = useHomeWatermark();
@@ -182,7 +187,7 @@ export const Navbar = () => {
                         {serviceDropdownItems.map((dropdownItem) =>
                           dropdownItem.external ? (
                             <a
-                              key={dropdownItem.label}
+                              key={dropdownItem.labelKey}
                               href={dropdownItem.href}
                               role="menuitem"
                               target="_blank"
@@ -190,17 +195,17 @@ export const Navbar = () => {
                               onClick={() => setOpenDropdown(null)}
                               className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                             >
-                              {dropdownItem.label}
+                              {t(dropdownItem.labelKey)}
                             </a>
                           ) : (
                             <Link
-                              key={dropdownItem.label}
+                              key={dropdownItem.labelKey}
                               to={dropdownItem.href}
                               role="menuitem"
                               onClick={() => setOpenDropdown(null)}
                               className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                             >
-                              {dropdownItem.label}
+                              {t(dropdownItem.labelKey)}
                             </Link>
                           )
                         )}
@@ -231,7 +236,7 @@ export const Navbar = () => {
                                 <Plane className="w-4 h-4" />
                               </div>
                               <span className="font-medium text-sm text-foreground leading-tight">
-                                {category}
+                                {translateCategory(category)}
                               </span>
                             </Link>
                           ))}
@@ -314,23 +319,23 @@ export const Navbar = () => {
                         {serviceDropdownItems.map((dropdownItem) =>
                           dropdownItem.external ? (
                             <a
-                              key={dropdownItem.label}
+                              key={dropdownItem.labelKey}
                               href={dropdownItem.href}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={() => setMobileOpen(false)}
                               className="py-2 text-sm text-muted-foreground hover:text-primary"
                             >
-                              {dropdownItem.label}
+                              {t(dropdownItem.labelKey)}
                             </a>
                           ) : (
                             <NavLink
-                              key={dropdownItem.label}
+                              key={dropdownItem.labelKey}
                               to={dropdownItem.href}
                               onClick={() => setMobileOpen(false)}
                               className="py-2 text-sm text-muted-foreground hover:text-primary"
                             >
-                              {dropdownItem.label}
+                              {t(dropdownItem.labelKey)}
                             </NavLink>
                           )
                         )}
@@ -353,7 +358,7 @@ export const Navbar = () => {
                             onClick={() => setMobileOpen(false)}
                             className="py-2 text-sm text-muted-foreground hover:text-primary"
                           >
-                            {category}
+                            {translateCategory(category)}
                           </NavLink>
                         ))}
                       </div>

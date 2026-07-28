@@ -7,18 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useI18n, type DictKey } from "@/lib/i18n";
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 const IS_DEV_TEST_KEY = !RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY === "test";
 
-const REASON_OPTIONS = [
-  "Equipment Purchase",
-  "Equipment Rental",
-  "Repair Services",
-  "Technical Support",
-] as const;
+type ContactReason = "Equipment Purchase" | "Equipment Rental" | "Repair Services" | "Technical Support";
 
-type ContactReason = (typeof REASON_OPTIONS)[number];
+const REASON_OPTIONS: { value: ContactReason; labelKey: DictKey }[] = [
+  { value: "Equipment Purchase", labelKey: "contact.reason.purchase" },
+  { value: "Equipment Rental", labelKey: "contact.reason.rental" },
+  { value: "Repair Services", labelKey: "contact.reason.repair" },
+  { value: "Technical Support", labelKey: "contact.reason.support" },
+];
 
 type ContactFormState = {
   firstName: string;
@@ -69,6 +70,7 @@ function ContactInfoBlock({
 
 function ContactForm() {
   const { executeRecaptcha } = useGoogleReCaptcha();
+  const { t } = useI18n();
   const [form, setForm] = useState<ContactFormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -106,13 +108,13 @@ function ContactForm() {
 
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Unable to send your message. Please try again.");
+        throw new Error(data?.error ?? t("contact.error"));
       }
 
       setForm(initialForm);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to send your message. Please try again.");
+      setError(err instanceof Error ? err.message : t("contact.error"));
     } finally {
       setSubmitting(false);
     }
@@ -127,20 +129,20 @@ function ContactForm() {
             aria-label="Breadcrumb"
           >
             <Link to="/" className="transition-colors hover:text-accent">
-              Home
+              {t("contact.breadcrumb.home")}
             </Link>
             <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
-            <span className="font-medium text-slate-800">Contact</span>
+            <span className="font-medium text-slate-800">{t("contact.breadcrumb.current")}</span>
           </nav>
         </div>
 
         <header className="mx-auto max-w-7xl px-6 pb-12 pt-8 text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-600 shadow-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_10px_hsl(var(--accent))]" />
-            Send us a message
+            {t("contact.badge")}
           </span>
           <h1 className="mt-6 font-display text-4xl font-black uppercase tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-            We Are Happy to Help!
+            {t("contact.title")}
           </h1>
         </header>
       </div>
@@ -154,24 +156,24 @@ function ContactForm() {
                 role="status"
               >
                 <p className="text-lg font-semibold text-emerald-900">
-                  Thank you! Your message has been sent successfully.
+                  {t("contact.success.title")}
                 </p>
                 <p className="mt-2 text-sm text-emerald-800/80">
-                  Our team will get back to you as soon as possible.
+                  {t("contact.success.subtitle")}
                 </p>
                 <Button
                   type="button"
                   onClick={() => setSuccess(false)}
                   className="mt-6 rounded-xl bg-accent px-8 font-bold uppercase tracking-wider text-accent-foreground hover:bg-accent-hover"
                 >
-                  Send another message
+                  {t("contact.success.another")}
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name *</Label>
+                    <Label htmlFor="firstName">{t("contact.firstName")}</Label>
                     <Input
                       id="firstName"
                       required
@@ -181,7 +183,7 @@ function ContactForm() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Label htmlFor="lastName">{t("contact.lastName")}</Label>
                     <Input
                       id="lastName"
                       required
@@ -193,7 +195,7 @@ function ContactForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name *</Label>
+                  <Label htmlFor="companyName">{t("contact.companyName")}</Label>
                   <Input
                     id="companyName"
                     required
@@ -204,7 +206,7 @@ function ContactForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">{t("contact.email")}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -216,7 +218,7 @@ function ContactForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reason">Reason *</Label>
+                  <Label htmlFor="reason">{t("contact.reason")}</Label>
                   <select
                     id="reason"
                     required
@@ -232,18 +234,18 @@ function ContactForm() {
                     )}
                   >
                     <option value="" disabled>
-                      Select a reason
+                      {t("contact.reason.placeholder")}
                     </option>
                     {REASON_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="message">Message *</Label>
+                  <Label htmlFor="message">{t("contact.message")}</Label>
                   <Textarea
                     id="message"
                     required
@@ -268,10 +270,10 @@ function ContactForm() {
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                      Sending…
+                      {t("contact.submitting")}
                     </>
                   ) : (
-                    "Submit"
+                    t("contact.submit")
                   )}
                 </Button>
               </form>
@@ -280,11 +282,11 @@ function ContactForm() {
         </section>
 
         <aside className="flex flex-col gap-10 lg:col-span-5">
-          <ContactInfoBlock icon={Phone} title="Phone Call">
-            <p>Call us with any questions you may have:</p>
+          <ContactInfoBlock icon={Phone} title={t("contact.phone.title")}>
+            <p>{t("contact.phone.line1")}</p>
             <p className="mt-3 space-y-1">
               <span className="block">
-                US Local:{" "}
+                {t("contact.phone.local")}{" "}
                 <a
                   href="tel:+13058880189"
                   className="font-bold text-slate-900 transition-colors hover:text-accent"
@@ -293,7 +295,7 @@ function ContactForm() {
                 </a>
               </span>
               <span className="block">
-                US Toll Free:{" "}
+                {t("contact.phone.tollFree")}{" "}
                 <a
                   href="tel:+18774732669"
                   className="font-bold text-slate-900 transition-colors hover:text-accent"
@@ -310,9 +312,9 @@ function ContactForm() {
             rel="noopener noreferrer"
             className="group -m-4 block rounded-2xl border border-transparent p-4 transition-colors hover:border-slate-200/80 hover:bg-white/60"
           >
-            <ContactInfoBlock icon={MessageSquare} title="WhatsApp Support">
+            <ContactInfoBlock icon={MessageSquare} title={t("contact.whatsapp.title")}>
               <p>
-                We have a dedicated WhatsApp line to support you better,{" "}
+                {t("contact.whatsapp.text")}{" "}
                 <span className="font-bold text-slate-900 transition-colors group-hover:text-accent">
                   +1.305.424.7480
                 </span>
@@ -321,17 +323,16 @@ function ContactForm() {
             </ContactInfoBlock>
           </a>
 
-          <ContactInfoBlock icon={Wrench} title="Hands-on or Remotely">
+          <ContactInfoBlock icon={Wrench} title={t("contact.service.title")}>
             <p>
-              Our technicians are ready to work on your equipment, either on your site, at our shop,
-              or remotely. Visit our{" "}
+              {t("contact.service.text.before")}{" "}
               <Link
-                to="/repair-services"
+                to="/servicios/reparacion"
                 className="font-semibold text-slate-900 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent"
               >
-                service section
+                {t("contact.service.link")}
               </Link>{" "}
-              to learn more about our repair services.
+              {t("contact.service.text.after")}
             </p>
           </ContactInfoBlock>
         </aside>

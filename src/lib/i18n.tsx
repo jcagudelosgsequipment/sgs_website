@@ -484,6 +484,61 @@ export const dict = {
   "notfound.title": { es: "Página no encontrada", en: "Page not found" },
   "notfound.message": { es: "¡Ups! La página que busca no existe.", en: "Oops! Page not found" },
   "notfound.home": { es: "Volver al Inicio", en: "Return to Home" },
+
+  // Contact page
+  "contact.breadcrumb.home": { es: "Inicio", en: "Home" },
+  "contact.breadcrumb.current": { es: "Contacto", en: "Contact" },
+  "contact.badge": { es: "Envíenos un mensaje", en: "Send us a message" },
+  "contact.title": { es: "¡Estamos para ayudarle!", en: "We Are Happy to Help!" },
+  "contact.success.title": {
+    es: "¡Gracias! Su mensaje fue enviado correctamente.",
+    en: "Thank you! Your message has been sent successfully.",
+  },
+  "contact.success.subtitle": {
+    es: "Nuestro equipo le responderá lo antes posible.",
+    en: "Our team will get back to you as soon as possible.",
+  },
+  "contact.success.another": { es: "Enviar otro mensaje", en: "Send another message" },
+  "contact.firstName": { es: "Nombre *", en: "First Name *" },
+  "contact.lastName": { es: "Apellido *", en: "Last Name *" },
+  "contact.companyName": { es: "Empresa *", en: "Company Name *" },
+  "contact.email": { es: "Correo electrónico *", en: "Email *" },
+  "contact.reason": { es: "Motivo *", en: "Reason *" },
+  "contact.reason.placeholder": { es: "Seleccione un motivo", en: "Select a reason" },
+  "contact.reason.purchase": { es: "Compra de Equipos", en: "Equipment Purchase" },
+  "contact.reason.rental": { es: "Renta de Equipos", en: "Equipment Rental" },
+  "contact.reason.repair": { es: "Servicios de Reparación", en: "Repair Services" },
+  "contact.reason.support": { es: "Soporte Técnico", en: "Technical Support" },
+  "contact.message": { es: "Mensaje *", en: "Message *" },
+  "contact.submit": { es: "Enviar", en: "Submit" },
+  "contact.submitting": { es: "Enviando…", en: "Sending…" },
+  "contact.error": {
+    es: "No se pudo enviar su mensaje. Intente de nuevo.",
+    en: "Unable to send your message. Please try again.",
+  },
+  "contact.phone.title": { es: "Teléfono", en: "Phone Call" },
+  "contact.phone.line1": { es: "Llámenos con cualquier pregunta:", en: "Call us with any questions you may have:" },
+  "contact.phone.local": { es: "Local US:", en: "US Local:" },
+  "contact.phone.tollFree": { es: "Gratuito US:", en: "US Toll Free:" },
+  "contact.whatsapp.title": { es: "Soporte WhatsApp", en: "WhatsApp Support" },
+  "contact.whatsapp.text": {
+    es: "Tenemos una línea dedicada de WhatsApp para atenderle mejor,",
+    en: "We have a dedicated WhatsApp line to support you better,",
+  },
+  "contact.service.title": { es: "En sitio o remoto", en: "Hands-on or Remotely" },
+  "contact.service.text.before": {
+    es: "Nuestros técnicos están listos para trabajar en su equipo, en su sitio, en nuestro taller o de forma remota. Visite nuestra",
+    en: "Our technicians are ready to work on your equipment, either on your site, at our shop, or remotely. Visit our",
+  },
+  "contact.service.link": { es: "sección de servicios", en: "service section" },
+  "contact.service.text.after": {
+    es: "para conocer más sobre nuestros servicios de reparación.",
+    en: "to learn more about our repair services.",
+  },
+
+  // Navbar quote cart
+  "nav.quoteCart.withItems": { es: "Cotización: {count} equipos", en: "Quote: {count} equipment" },
+  "nav.quoteCart.empty": { es: "Carrito de cotización vacío", en: "Empty quote cart" },
 } satisfies Dict;
 
 export type DictKey = keyof typeof dict;
@@ -529,7 +584,7 @@ const readStoredLang = (): Lang => {
   } catch {
     /* ignore */
   }
-  return "es";
+  return "en";
 };
 
 type Ctx = {
