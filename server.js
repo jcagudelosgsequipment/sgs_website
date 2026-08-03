@@ -165,6 +165,7 @@ app.get('/api/equipment', async (req, res) => {
 app.get('/api/image/:wo', async (req, res) => {
   const { wo } = req.params;
   try {
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400');
     const accessToken = await getGraphToken();
     const siteId = await getSiteId(accessToken);
 
@@ -187,7 +188,6 @@ app.get('/api/image/:wo', async (req, res) => {
         });
         const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
         res.setHeader('Content-Type', contentType);
-        res.setHeader('Cache-Control', 'public, max-age=3600');
         return res.send(Buffer.from(imageResponse.data));
       }
     }
@@ -202,6 +202,7 @@ app.get('/api/image/:wo', async (req, res) => {
 // 3. RUTA GALERÍA: Trae todas las fotos de la carpeta WATERMARK para el carrusel
 app.get('/api/gallery/:wo', async (req, res) => {
   const { wo } = req.params;
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400');
   try {
     const accessToken = await getGraphToken();
     const siteId = await getSiteId(accessToken);
