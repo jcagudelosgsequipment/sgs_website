@@ -77,10 +77,16 @@
 
 @layer base {
   * { @apply border-border; }
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: clip;
+    max-width: 100%;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";
+    overflow-x: clip;
+    max-width: 100%;
   }
 }
 

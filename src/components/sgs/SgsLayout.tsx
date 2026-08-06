@@ -14,11 +14,13 @@ export const SgsLayout = () => {
 
   return (
     <HomeWatermarkProvider>
-      <Navbar />
-      <div className={isHome ? undefined : "pt-24 lg:pt-28"}>
-        <Outlet />
+      <div className="min-h-screen max-w-full overflow-x-clip">
+        <Navbar />
+        <div className={isHome ? undefined : "pt-24 lg:pt-28"}>
+          <Outlet />
+        </div>
+        <Footer />
       </div>
-      <Footer />
     </HomeWatermarkProvider>
   );
 };

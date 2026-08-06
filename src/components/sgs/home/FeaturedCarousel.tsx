@@ -51,15 +51,15 @@ export const FeaturedCarousel = () => {
     setIndex((i) => (items.length === 0 ? 0 : (i + 1) % items.length));
 
   const wrapperClasses =
-    "relative w-full max-w-2xl lg:max-w-3xl min-h-[280px] bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl hover:scale-[1.01] transition-transform duration-300";
+    "relative w-full max-w-full min-w-0 overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl";
 
   if (status === "loading") {
     return (
-      <div className={`${wrapperClasses} p-6 flex items-center gap-6`}>
-        <div className="flex w-52 h-52 md:w-64 md:h-64 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] border border-white/10">
-          <Cog className="w-10 h-10 animate-spin text-white/50" strokeWidth={1.5} />
+      <div className={`${wrapperClasses} flex flex-col items-center gap-4 p-5 sm:flex-row sm:gap-6 sm:p-6`}>
+        <div className="flex aspect-[4/3] w-full max-w-[13rem] shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] sm:aspect-square sm:h-40 sm:w-40 lg:h-52 lg:w-52">
+          <Cog className="h-10 w-10 animate-spin text-white/50" strokeWidth={1.5} />
         </div>
-        <div className="flex-1 text-[11px] tracking-[0.25em] uppercase text-white/55">
+        <div className="text-center text-[11px] uppercase tracking-[0.25em] text-white/55 sm:text-left">
           {t("hero.card.loading")}
         </div>
       </div>
@@ -68,8 +68,8 @@ export const FeaturedCarousel = () => {
 
   if (status === "empty") {
     return (
-      <div className={`${wrapperClasses} p-6 flex items-center justify-center`}>
-        <span className="text-[11px] tracking-[0.25em] uppercase text-white/55">
+      <div className={`${wrapperClasses} flex items-center justify-center p-6`}>
+        <span className="text-center text-[11px] uppercase tracking-[0.25em] text-white/55">
           {t("hero.card.empty")}
         </span>
       </div>
@@ -77,6 +77,7 @@ export const FeaturedCarousel = () => {
   }
 
   const current = items[index];
+  const title = [current.manufacturer, current.model].filter(Boolean).join(" ");
 
   return (
     <div
@@ -84,7 +85,7 @@ export const FeaturedCarousel = () => {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-6 lg:gap-7 p-6">
+      <div className="flex flex-col gap-4 p-4 sm:gap-5 sm:p-5 lg:flex-row lg:items-center lg:gap-6 lg:p-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={`img-${current.id}-${index}`}
@@ -92,7 +93,7 @@ export const FeaturedCarousel = () => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-            className="relative shrink-0 w-full md:w-52 md:h-52 lg:w-64 lg:h-64 h-60 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-industrial-navy-deep ring-1 ring-white/10"
+            className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-secondary to-industrial-navy-deep ring-1 ring-white/10 sm:aspect-[16/10] lg:aspect-square lg:h-44 lg:w-44 xl:h-52 xl:w-52"
           >
             <img
               src={current.photoUrl}
@@ -100,8 +101,8 @@ export const FeaturedCarousel = () => {
               loading="lazy"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.22em] uppercase text-white bg-accent px-2.5 py-1 rounded-full shadow-glow">
-              <span className="w-1 h-1 rounded-full bg-white" />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-glow">
+              <span className="h-1 w-1 rounded-full bg-white" />
               {t("hero.featured")}
             </span>
           </motion.div>
@@ -114,32 +115,34 @@ export const FeaturedCarousel = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-            className="flex-1 min-w-0"
+            className="min-w-0 flex-1"
           >
-            <div className="text-[11px] font-bold tracking-[0.22em] uppercase text-primary-glow">
-              <span className="bg-primary-glow/10 border border-primary-glow/20 px-2.5 py-1 rounded-full">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary-glow">
+              <span className="inline-block rounded-full border border-primary-glow/20 bg-primary-glow/10 px-2.5 py-1">
                 {t("hero.featured")}
               </span>
             </div>
 
-            <h3 className="mt-3 text-xl md:text-2xl font-bold text-white tracking-tight leading-tight line-clamp-2">
-              {current.manufacturer} {current.model}
+            <h3 className="mt-3 break-words text-lg font-bold leading-snug tracking-tight text-white sm:text-xl lg:text-2xl">
+              {title}
             </h3>
 
-            <div className="mt-5 grid grid-cols-2 gap-4">
-              <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3.5">
-                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-white/55 font-semibold">
-                  <Gauge className="w-3.5 h-3.5" /> {t("hero.card.cap")}
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3">
+              <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2.5 sm:px-3.5 sm:py-3">
+                <div className="flex items-start gap-1.5 text-[10px] font-semibold uppercase leading-tight tracking-wide text-white/55 sm:text-[11px]">
+                  <Gauge className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span className="break-words">{t("hero.card.cap")}</span>
                 </div>
-                <div className="mt-1.5 text-lg lg:text-xl font-bold text-white truncate">
+                <div className="mt-1.5 break-words text-sm font-bold leading-snug text-white sm:text-base lg:text-lg">
                   {current.capacity || "—"}
                 </div>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3.5">
-                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-white/55 font-semibold">
-                  <Fuel className="w-3.5 h-3.5" /> {t("hero.card.fuel")}
+              <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2.5 sm:px-3.5 sm:py-3">
+                <div className="flex items-start gap-1.5 text-[10px] font-semibold uppercase leading-tight tracking-wide text-white/55 sm:text-[11px]">
+                  <Fuel className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span className="break-words">{t("hero.card.fuel")}</span>
                 </div>
-                <div className="mt-1.5 text-lg lg:text-xl font-bold text-white truncate">
+                <div className="mt-1.5 break-words text-sm font-bold leading-snug text-white sm:text-base lg:text-lg">
                   {current.fuelType || "—"}
                 </div>
               </div>
@@ -147,11 +150,11 @@ export const FeaturedCarousel = () => {
 
             <Button
               asChild
-              className="w-full h-14 bg-accent hover:opacity-90 font-bold text-accent-foreground text-base rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-5 border-none"
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl border-none bg-accent text-base font-bold text-accent-foreground shadow-lg transition-all hover:opacity-90 sm:mt-5 sm:h-14"
             >
               <Link to="/contacto">
                 {t("hero.card.cta")}
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="h-5 w-5 shrink-0" />
               </Link>
             </Button>
           </motion.div>
@@ -164,27 +167,27 @@ export const FeaturedCarousel = () => {
             type="button"
             aria-label={t("hero.card.prev")}
             onClick={goPrev}
-            className="absolute -left-5 top-1/2 -translate-y-1/2 hidden md:flex h-12 w-12 items-center justify-center rounded-full bg-slate-950/85 backdrop-blur-md border border-white/15 text-white hover:bg-accent hover:text-accent-foreground hover:border-accent transition-colors shadow-xl"
+            className="absolute left-2 top-[30%] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/85 text-white shadow-xl backdrop-blur-md transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground lg:flex xl:left-3 xl:h-11 xl:w-11"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             type="button"
             aria-label={t("hero.card.next")}
             onClick={goNext}
-            className="absolute -right-5 top-1/2 -translate-y-1/2 hidden md:flex h-12 w-12 items-center justify-center rounded-full bg-slate-950/85 backdrop-blur-md border border-white/15 text-white hover:bg-accent hover:text-accent-foreground hover:border-accent transition-colors shadow-xl"
+            className="absolute right-2 top-[30%] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/85 text-white shadow-xl backdrop-blur-md transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground lg:flex xl:right-3 xl:h-11 xl:w-11"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="h-5 w-5" />
           </button>
 
-          <div className="flex md:hidden items-center justify-between px-5 pb-4">
+          <div className="flex items-center justify-between px-4 pb-4 lg:hidden">
             <button
               type="button"
               aria-label={t("hero.card.prev")}
               onClick={goPrev}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/80 hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-1.5">
               {items.map((_, i) => (
@@ -193,8 +196,9 @@ export const FeaturedCarousel = () => {
                   type="button"
                   aria-label={`Equipment ${i + 1}`}
                   onClick={() => setIndex(i)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-6 bg-accent" : "w-1.5 bg-white/25 hover:bg-white/45"
-                    }`}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === index ? "w-6 bg-accent" : "w-1.5 bg-white/25 hover:bg-white/45"
+                  }`}
                 />
               ))}
             </div>
@@ -202,21 +206,22 @@ export const FeaturedCarousel = () => {
               type="button"
               aria-label={t("hero.card.next")}
               onClick={goNext}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/80 hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="hidden md:flex absolute bottom-2 left-1/2 -translate-x-1/2 items-center gap-1.5">
+          <div className="absolute bottom-2 left-1/2 hidden -translate-x-1/2 items-center gap-1.5 lg:flex">
             {items.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 aria-label={`Equipment ${i + 1}`}
                 onClick={() => setIndex(i)}
-                className={`h-1 rounded-full transition-all duration-300 ${i === index ? "w-5 bg-accent" : "w-1 bg-white/25 hover:bg-white/45"
-                  }`}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  i === index ? "w-5 bg-accent" : "w-1 bg-white/25 hover:bg-white/45"
+                }`}
               />
             ))}
           </div>

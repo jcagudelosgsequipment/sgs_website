@@ -5,7 +5,7 @@ import { VideoShowcase } from "@/components/sgs/home/VideoShowcase";
 import { WhyChooseSGS } from "@/components/sgs/home/WhyChooseSGS";
 
 const Index = () => (
-  <main className="min-h-screen bg-background">
+  <main className="min-h-screen max-w-full overflow-x-clip bg-background">
     <HeroSection />
     <TrustBar />
     <WhyChooseSGS />

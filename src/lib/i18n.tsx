@@ -59,7 +59,7 @@ export const dict = {
   "hero.card.title": { es: "Grúa Telescópica GT-500", en: "Telescopic Crane GT-500" },
   "hero.card.cap": { es: "Capacidad", en: "Capacity" },
   "hero.card.reach": { es: "Alcance", en: "Reach" },
-  "hero.card.fuel": { es: "Tipo de Combustible", en: "Fuel Type" },
+  "hero.card.fuel": { es: "Combustible", en: "Fuel" },
   "hero.card.cta": { es: "Cotizar Ahora", en: "Get a Quote" },
   "hero.card.loading": { es: "Cargando equipos…", en: "Loading equipment…" },
   "hero.card.empty": { es: "Sin equipos destacados disponibles", en: "No featured equipment available" },

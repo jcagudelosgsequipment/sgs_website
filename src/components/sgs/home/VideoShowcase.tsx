@@ -128,9 +128,9 @@ export const VideoShowcase = () => {
 
 
 
-        <div className="-mx-4 mt-14 overflow-x-auto px-4 pb-4 lg:mx-0 lg:overflow-visible lg:px-0">
+        <div className="mt-14 max-w-full overflow-x-auto overscroll-x-contain px-1 pb-4 [-webkit-overflow-scrolling:touch] lg:overflow-visible lg:px-0">
 
-          <div className="flex w-max gap-6 lg:grid lg:w-auto lg:grid-cols-3 lg:gap-8">
+          <div className="flex w-max max-w-none gap-6 lg:grid lg:w-full lg:max-w-full lg:grid-cols-3 lg:gap-8">
 
             {videos.map((video, index) => (
 
@@ -146,7 +146,7 @@ export const VideoShowcase = () => {
 
                 custom={index + 1}
 
-                className="group w-[85vw] max-w-sm shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-card backdrop-blur-xl transition-colors hover:border-white/20 lg:w-auto lg:max-w-none"
+                className="group w-[min(85vw,24rem)] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-card backdrop-blur-xl transition-colors hover:border-white/20 lg:w-auto lg:max-w-none"
 
               >
 

@@ -50,18 +50,18 @@ export const HeroSection = () => {
   return (
     <section
       id="top"
-      className="relative isolate min-h-[100dvh] w-full overflow-hidden bg-[#060b19] text-white pt-[clamp(5.5rem,10vh,7rem)] pb-[clamp(2.5rem,5vh,4rem)]"
+      className="relative isolate min-h-[100dvh] w-full max-w-full overflow-x-clip bg-[#060b19] text-white pt-[clamp(5.5rem,10vh,7rem)] pb-[clamp(2.5rem,5vh,4rem)]"
     >
       <img
         src="/FONDO3.png"
         alt=""
         aria-hidden
-        className="absolute right-0 top-0 h-full w-full md:w-[88vw] lg:w-[85vw] object-cover object-right pointer-events-none z-0"
+        className="absolute inset-0 h-full w-full max-w-none object-cover object-right pointer-events-none z-0 md:left-auto md:right-0 md:w-[min(88%,88vw)] lg:w-[min(85%,85vw)]"
       />
 
       <div
         aria-hidden
-        className="absolute inset-y-0 left-0 w-full md:w-[72vw] lg:w-[65vw] xl:w-[60vw] z-10 pointer-events-none bg-gradient-to-r from-[#060b19] via-[#060b19] to-transparent"
+        className="absolute inset-y-0 left-0 w-full max-w-full md:w-[72%] lg:w-[65%] xl:w-[60%] z-10 pointer-events-none bg-gradient-to-r from-[#060b19] via-[#060b19] to-transparent"
       />
 
       <div
@@ -79,8 +79,8 @@ export const HeroSection = () => {
         className="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(circle_at_15%_45%,rgba(29,78,216,0.25),transparent_55%)]"
       />
 
-      <div className="relative z-20 w-full px-[clamp(1.25rem,4vw,4rem)] min-h-[calc(100dvh-clamp(8rem,14vh,11rem))] flex flex-col justify-start hero-tall:justify-center">
-        <div className="w-full max-w-[min(100%,1050px)] flex flex-col gap-[clamp(0.75rem,2.5vh,2rem)]">
+      <div className="relative z-20 w-full max-w-full px-[clamp(1rem,4vw,4rem)] min-h-[calc(100dvh-clamp(8rem,14vh,11rem))] flex flex-col justify-start hero-tall:justify-center">
+        <div className="w-full max-w-[min(100%,1050px)] min-w-0 flex flex-col gap-[clamp(0.75rem,2.5vh,2rem)]">
           {/* Watermark — siempre en flujo; escala con ancho Y alto del viewport */}
           <motion.div
             ref={watermarkRef}
@@ -122,8 +122,8 @@ export const HeroSection = () => {
             </motion.div>
 
             <h1
-              className="font-display font-black tracking-tight text-white leading-[1.05]"
-              style={{ fontSize: "clamp(2.25rem, 3.8vw + 1.4vh, 6rem)" }}
+              className="max-w-full break-words font-display font-black tracking-tight text-white leading-[1.08]"
+              style={{ fontSize: "clamp(1.85rem, 3.2vw + 1.2vh, 6rem)" }}
             >
               <motion.span
                 variants={fadeUp}
@@ -140,16 +140,18 @@ export const HeroSection = () => {
                 initial="hidden"
                 animate="show"
                 custom={2}
-                className="block mt-[clamp(0.25rem,0.8vh,0.75rem)]"
+                className="mt-[clamp(0.25rem,0.8vh,0.75rem)] block max-w-full"
               >
                 <motion.span
-                  className="inline-block text-transparent bg-clip-text"
+                  className="max-w-full text-transparent bg-clip-text [background-clip:text] [-webkit-text-fill-color:transparent]"
                   style={{
                     backgroundImage:
                       "linear-gradient(to right, hsl(var(--accent)) 30%, hsl(18 95% 60%) 50%, hsl(var(--accent)) 70%)",
                     backgroundColor: "hsl(var(--accent))",
                     backgroundSize: "300% 100%",
                     backgroundRepeat: "no-repeat",
+                    boxDecorationBreak: "clone",
+                    WebkitBoxDecorationBreak: "clone",
                   }}
                   animate={{ backgroundPosition: ["100% 0", "-100% 0"] }}
                   transition={{
@@ -180,26 +182,26 @@ export const HeroSection = () => {
               initial="hidden"
               animate="show"
               custom={4}
-              className="flex flex-col sm:flex-row gap-[clamp(0.75rem,2vh,1.25rem)]"
+              className="flex w-full max-w-full flex-col gap-[clamp(0.75rem,2vh,1.25rem)] sm:flex-row sm:flex-wrap"
             >
               <Button
                 asChild
                 size="lg"
-                className="rounded-full h-[clamp(2.75rem,6vh,3.5rem)] px-[clamp(1.5rem,4vw,2.5rem)] bg-accent hover:bg-accent-hover text-accent-foreground font-bold text-base shadow-glow hover:scale-[1.02] transition-transform duration-300"
+                className="h-[clamp(2.75rem,6vh,3.5rem)] w-full max-w-full rounded-full bg-accent px-[clamp(1.25rem,4vw,2.5rem)] text-base font-bold text-accent-foreground shadow-glow transition-transform duration-300 hover:scale-[1.02] hover:bg-accent-hover sm:w-auto"
               >
                 <Link to="/equipos">
                   {t("hero.cta1")}
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="ml-2 h-5 w-5 shrink-0" />
                 </Link>
               </Button>
               <Button
                 asChild
                 size="lg"
                 variant="outline"
-                className="rounded-full h-[clamp(2.75rem,6vh,3.5rem)] px-[clamp(1.5rem,4vw,2.5rem)] bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white font-bold text-base backdrop-blur-sm transition-all"
+                className="h-[clamp(2.75rem,6vh,3.5rem)] w-full max-w-full rounded-full border-white/20 bg-transparent px-[clamp(1.25rem,4vw,2.5rem)] text-base font-bold text-white backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white sm:w-auto"
               >
                 <a href="#video">
-                  <PlayCircle className="w-5 h-5 mr-2" />
+                  <PlayCircle className="mr-2 h-5 w-5 shrink-0" />
                   {t("hero.cta2")}
                 </a>
               </Button>
@@ -210,17 +212,17 @@ export const HeroSection = () => {
               initial="hidden"
               animate="show"
               custom={5}
-              className="flex flex-wrap items-center gap-x-[clamp(0.75rem,2vw,1.5rem)] gap-y-3 max-w-[38rem]"
+              className="grid w-full max-w-[38rem] grid-cols-2 gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-[clamp(0.75rem,2vw,1.5rem)]"
             >
               {features.map((f) => (
                 <li
                   key={f.labelKey}
-                  className="flex items-center gap-2.5 text-left group shrink-0"
+                  className="group flex min-w-0 items-center gap-2.5 text-left sm:shrink-0"
                 >
-                  <div className="h-10 w-10 shrink-0 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-orange-500 backdrop-blur-sm shadow-[0_4px_16px_rgba(29,78,216,0.12)] transition-all group-hover:scale-105 group-hover:border-white/25">
-                    <f.icon className="w-4 h-4" strokeWidth={2} />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-orange-500 shadow-[0_4px_16px_rgba(29,78,216,0.12)] backdrop-blur-sm transition-all group-hover:scale-105 group-hover:border-white/25 sm:h-10 sm:w-10">
+                    <f.icon className="h-4 w-4" strokeWidth={2} />
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-200 leading-snug max-w-[5.5rem] sm:max-w-none group-hover:text-white transition-colors">
+                  <span className="min-w-0 break-words text-xs font-semibold leading-snug text-slate-200 transition-colors group-hover:text-white sm:max-w-none sm:text-sm">
                     {t(f.labelKey)}
                   </span>
                 </li>
@@ -234,12 +236,12 @@ export const HeroSection = () => {
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: EASE, delay: 0.5 }}
-        className="hidden hero-wide-tall:block absolute bottom-[clamp(4rem,10vh,7rem)] right-[clamp(1.5rem,4vw,5rem)] z-20 w-[min(38vw,32rem)] 2xl:w-[min(42vw,36rem)] origin-bottom-right scale-[0.9] 2xl:scale-100"
+        className="absolute bottom-[clamp(4rem,10vh,7rem)] right-[clamp(1.5rem,3vw,4rem)] z-20 hidden w-[min(36vw,30rem)] max-w-[calc(100%-1.5rem)] origin-bottom-right hero-wide-tall:block 2xl:w-[min(40vw,34rem)]"
       >
         <FeaturedCarousel />
       </motion.div>
 
-      <div className="hero-wide-tall:hidden relative z-20 px-[clamp(1.25rem,4vw,3rem)] mt-[clamp(1.5rem,4vh,2.5rem)] pb-4 w-full max-w-xl mx-auto">
+      <div className="relative z-20 mx-auto mt-[clamp(1.5rem,4vh,2.5rem)] w-full max-w-xl min-w-0 px-[clamp(1rem,4vw,3rem)] pb-4 hero-wide-tall:hidden">
         <FeaturedCarousel />
       </div>
     </section>
