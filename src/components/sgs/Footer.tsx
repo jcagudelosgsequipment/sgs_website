@@ -18,8 +18,6 @@ import {
 
   Search,
 
-  Twitter,
-
   Youtube,
 
   type LucideIcon,
@@ -112,15 +110,13 @@ type SocialLink = { icon: LucideIcon; label: string; href: string };
 
 const socialLinks: SocialLink[] = [
 
-  { icon: Twitter, label: "X", href: "https://x.com" },
+  { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/sgscorp" },
 
-  { icon: Facebook, label: "Facebook", href: "https://facebook.com" },
+  { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/sgscorp" },
 
-  { icon: Instagram, label: "Instagram", href: "https://instagram.com" },
+  { icon: Linkedin, label: "LinkedIn", href: "https://www.linkedin.com/company/servicore-gs-corp" },
 
-  { icon: Linkedin, label: "LinkedIn", href: "https://linkedin.com" },
-
-  { icon: Youtube, label: "YouTube", href: "https://youtube.com" },
+  { icon: Youtube, label: "YouTube", href: "https://www.youtube.com/@sgsusa" },
 
 ];
 
