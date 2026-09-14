@@ -3,9 +3,16 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
+import { RentalAvailabilityBadge } from "@/components/rentals/RentalAvailabilityBadge";
+import { RentalQuoteModal } from "@/components/rentals/RentalQuoteModal";
 import { fetchEquipment } from "@/services/equipmentService";
 import { useQuote } from "@/contexts/QuoteContext";
+import { useRentalAvailability } from "@/hooks/useRentalAvailability";
 import { useI18n } from "@/lib/i18n";
+import {
+  getEquipmentAvailability,
+} from "@/lib/rentalAvailability";
+import { buildRentalInquiryPath, isIndefiniteRental } from "@/lib/rentalEquipment";
 import {
   getEquipmentStatusTone,
   getStatusToneForLabel,
@@ -45,6 +52,12 @@ const EquipmentDetail = () => {
   const [mainImageUrl, setMainImageUrl] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [rentalModalOpen, setRentalModalOpen] = useState(false);
+  const isRental = equipment?.isRental === true;
+  const { availabilityMap, refreshAvailability } = useRentalAvailability({
+    enabled: isRental,
+    active: rentalModalOpen,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +84,7 @@ const EquipmentDetail = () => {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, t]);
 
   const workOrder = useMemo(
     () => (equipment ? workOrderFromItem(equipment) : ""),
@@ -170,6 +183,8 @@ const EquipmentDetail = () => {
   const isAdded = isInQuote(equipment.id);
   const statusItems = parseEquipmentStatuses(equipment.status);
   const statusTone = getEquipmentStatusTone(equipment.status);
+  const rentalAvailability = getEquipmentAvailability(availabilityMap, equipment.title);
+  const longTermRental = isIndefiniteRental(equipment, rentalAvailability);
 
   return (
     <main
@@ -281,26 +296,71 @@ const EquipmentDetail = () => {
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-slate-600">{equipment.displayName}</p>
 
-              <div className="mt-8">
-                <Button
-                  type="button"
-                  size="lg"
-                  onClick={() => {
-                    if (isAdded) {
-                      removeFromQuote(equipment.id);
-                    } else {
-                      addToQuote(equipment);
-                    }
-                  }}
-                  className={cn(
-                    "h-14 w-full rounded-xl px-8 text-base font-bold uppercase tracking-wide transition sm:w-auto",
-                    isAdded
-                      ? "bg-slate-800 text-white hover:bg-slate-700"
-                      : "bg-accent text-accent-foreground shadow-md hover:bg-accent-hover"
-                  )}
-                >
-                  {isAdded ? t("equipment.removeQuote") : t("equipment.addQuote")}
-                </Button>
+              <div className="mt-8 rounded-xl border border-white/10 bg-[#0a1628] p-4">
+                {isRental ? (
+                  <div className="mb-4">
+                    <RentalAvailabilityBadge
+                      equipment={equipment}
+                      availability={rentalAvailability}
+                    />
+                  </div>
+                ) : null}
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  {isRental ? (
+                    longTermRental ? (
+                      <Button
+                        asChild
+                        type="button"
+                        size="lg"
+                        className="h-14 flex-1 rounded-xl bg-[#FF5500] px-8 text-base font-semibold text-white shadow-lg hover:bg-orange-500"
+                      >
+                        <Link to={buildRentalInquiryPath(equipment)}>
+                          {t("rentals.card.inquire")}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="lg"
+                        onClick={() => {
+                          void refreshAvailability();
+                          setRentalModalOpen(true);
+                        }}
+                        className="h-14 flex-1 rounded-xl bg-[#FF5500] px-8 text-base font-semibold text-white shadow-lg hover:bg-orange-500"
+                      >
+                        {t("equipment.requestRental")}
+                      </Button>
+                    )
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant={isRental ? "outline" : "default"}
+                    onClick={() => {
+                      if (isAdded) {
+                        removeFromQuote(equipment.id);
+                      } else {
+                        addToQuote(equipment);
+                      }
+                    }}
+                    className={cn(
+                      "h-14 flex-1 rounded-xl px-8 text-base font-semibold transition",
+                      isRental
+                        ? "border border-white/20 bg-white/5 text-white shadow-none hover:border-white/40 hover:bg-white/10 hover:text-white"
+                        : isAdded
+                          ? "bg-slate-800 text-white hover:bg-slate-700"
+                          : "bg-[#FF5500] font-bold uppercase tracking-wide text-white shadow-lg hover:bg-orange-500"
+                    )}
+                  >
+                    {isRental
+                      ? isAdded
+                        ? t("equipment.removeQuote")
+                        : t("equipment.addQuoteShort")
+                      : isAdded
+                        ? t("equipment.removeQuote")
+                        : t("equipment.addQuote")}
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -397,16 +457,35 @@ const EquipmentDetail = () => {
             >
               {t("equipment.related")}
             </h2>
-            <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
               {relatedEquipment.map((item) => (
-                <EquipmentCard key={item.id} equipment={item} />
+                <EquipmentCard
+                  key={item.id}
+                  equipment={item}
+                  availability={
+                    item.isRental
+                      ? getEquipmentAvailability(availabilityMap, item.title)
+                      : undefined
+                  }
+                />
               ))}
             </div>
           </section>
         ) : null}
       </section>
+
+      {isRental ? (
+        <RentalQuoteModal
+          open={rentalModalOpen}
+          equipment={equipment}
+          availability={rentalAvailability}
+          onOpenChange={setRentalModalOpen}
+        />
+      ) : null}
     </main>
   );
 };
 
-export default EquipmentDetail;
+export default function EquipmentDetailPage() {
+  return <EquipmentDetail />;
+}

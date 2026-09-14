@@ -38,6 +38,7 @@ const slideIn = (fromRight: boolean): Variants => ({
 type CardKind = "default" | "carousel" | "parts-carousel" | "image";
 
 type Division = {
+  id?: string;
   icon: LucideIcon;
   eyebrowKey: DictKey;
   titleKey: DictKey;
@@ -95,7 +96,14 @@ const DivisionRow = ({ division, reversed }: { division: Division; reversed: boo
     division.card === "image";
 
   return (
-    <div ref={ref} className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+    <div
+      ref={ref}
+      id={division.id}
+      className={cn(
+        "grid items-center gap-10 lg:grid-cols-2 lg:gap-16",
+        division.id && "scroll-mt-[88px]",
+      )}
+    >
       <motion.div
         variants={slideIn(reversed)}
         initial="hidden"
@@ -209,6 +217,7 @@ export const BusinessDivisions = () => {
         card: "carousel",
       },
       {
+        id: "rentals",
         icon: Calendar,
         eyebrowKey: "biz.div2.eyebrow",
         titleKey: "biz.div2.title",
@@ -217,21 +226,19 @@ export const BusinessDivisions = () => {
             <p>{t("biz.div2.p1")}</p>
             <p className="mt-4">
               {t("biz.div2.p2.before")}{" "}
-              <a
-                href="https://sgs.rentals/about/"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/rentals"
                 className="font-semibold text-accent transition-colors hover:text-accent-hover hover:underline"
               >
-                SGS.RENTALS
-              </a>{" "}
+                {t("biz.div2.p2.link")}
+              </Link>
               {t("biz.div2.p2.after")}
             </p>
             <p className="mt-4">{t("biz.div2.p3")}</p>
           </>
         ),
         highlightKeys: [],
-        cta: { labelKey: "biz.div2.cta", to: "/contacto" },
+        cta: { labelKey: "biz.div2.cta", to: "/rentals" },
         brand: "SGS Rentals",
         card: "image",
         imageSrc: "/Equipment.png",

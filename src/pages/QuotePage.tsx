@@ -1,6 +1,6 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { GoogleReCaptchaProvider, useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import ReCAPTCHA from "react-google-recaptcha";
 import { Loader2, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +38,6 @@ const initialForm: QuoteFormState = {
   interestType: "rent",
   requestedDate: "",
 };
-
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
-const IS_DEV_TEST_KEY = !RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY === "test";
 
 function QuoteSummaryItem({
   item,
@@ -89,11 +86,13 @@ function QuoteSummaryItem({
   );
 }
 
-const QuoteForm = () => {
+export default function QuotePage() {
   const { t, lang, translateCategory } = useI18n();
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { quoteItems, removeFromQuote, clearQuote } = useQuote();
   const [form, setForm] = useState<QuoteFormState>(initialForm);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +108,7 @@ const QuoteForm = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!hasItems || submitting) return;
+    if (!hasItems || submitting || !recaptchaToken) return;
 
     setSubmitting(true);
     setError(null);
@@ -120,19 +119,6 @@ const QuoteForm = () => {
     };
 
     try {
-      let recaptchaToken: string;
-
-      if (IS_DEV_TEST_KEY) {
-        recaptchaToken = "test";
-      } else {
-        if (!executeRecaptcha) {
-          console.error("ReCAPTCHA not yet available");
-          setSubmitting(false);
-          return;
-        }
-        recaptchaToken = await executeRecaptcha("quote_form");
-      }
-
       const res = await fetch("/api/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,6 +126,7 @@ const QuoteForm = () => {
           customer: form,
           equipment: quoteItems,
           recaptchaToken,
+          b_website_hp: honeypot,
         }),
       });
 
@@ -150,6 +137,7 @@ const QuoteForm = () => {
 
       clearQuote();
       setForm(initialForm);
+      setHoneypot("");
       setPdfSnapshot(snapshot);
       setSuccess(true);
       setPdfPromptOpen(true);
@@ -157,6 +145,8 @@ const QuoteForm = () => {
       setError(err instanceof Error ? err.message : t("quote.error"));
     } finally {
       setSubmitting(false);
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
     }
   };
 
@@ -344,10 +334,34 @@ const QuoteForm = () => {
                   </p>
                 ) : null}
 
+                <input
+                  type="text"
+                  name="b_website_hp"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ display: "none", opacity: 0, position: "absolute", left: "-9999px" }}
+                />
+
+                <div className="my-4 flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                    onChange={(token) => setRecaptchaToken(token)}
+                    onExpired={() => setRecaptchaToken(null)}
+                    theme="light"
+                  />
+                </div>
+
                 <Button
                   type="submit"
-                  disabled={!hasItems || submitting}
-                  className="h-12 w-full rounded-xl bg-orange-500 text-base font-bold text-white hover:bg-orange-600 disabled:opacity-50"
+                  disabled={!hasItems || !recaptchaToken || submitting}
+                  className={cn(
+                    "h-12 w-full rounded-xl bg-orange-500 text-base font-bold text-white hover:bg-orange-600",
+                    (!recaptchaToken || submitting) && "cursor-not-allowed opacity-50"
+                  )}
                 >
                   {submitting ? (
                     <>
@@ -393,16 +407,5 @@ const QuoteForm = () => {
         </AlertDialogContent>
       </AlertDialog>
     </main>
-  );
-};
-
-export default function QuotePage() {
-  return (
-    <GoogleReCaptchaProvider
-      reCaptchaKey={import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? ""}
-      useEnterprise={true}
-    >
-      <QuoteForm />
-    </GoogleReCaptchaProvider>
   );
 }

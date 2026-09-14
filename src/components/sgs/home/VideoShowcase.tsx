@@ -72,7 +72,7 @@ export const VideoShowcase = () => {
 
       ref={ref}
 
-      className="relative overflow-hidden bg-gradient-hero py-20 text-white lg:py-28"
+      className="relative overflow-hidden bg-gradient-hero py-20 text-white scroll-mt-[88px] lg:py-28"
 
     >
 

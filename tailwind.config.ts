@@ -15,6 +15,9 @@ export default {
         "hero-tall": { raw: "(min-height: 860px)" },
         "hero-wide-tall": { raw: "(min-width: 1280px) and (min-height: 900px)" },
       },
+      scale: {
+        "98": "0.98",
+      },
       fontFamily: {
         display: ["Inter", "system-ui", "sans-serif"],
         sans: ["Inter", "system-ui", "sans-serif"],

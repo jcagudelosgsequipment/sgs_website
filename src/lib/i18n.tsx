@@ -7,6 +7,7 @@ type Dict = Record<string, { es: string; en: string }>;
 export const dict = {
   // Navbar
   "nav.equipos": { es: "Equipos", en: "Equipment" },
+  "nav.rentals": { es: "Rentals", en: "Rentals" },
   "nav.categorias": { es: "Categorías", en: "Categories" },
   "nav.servicios": { es: "Servicios", en: "Services" },
   "nav.nosotros": { es: "Nosotros", en: "About" },
@@ -66,6 +67,40 @@ export const dict = {
   "hero.card.prev": { es: "Equipo anterior", en: "Previous equipment" },
   "hero.card.next": { es: "Siguiente equipo", en: "Next equipment" },
   "hero.scroll": { es: "Descubre más", en: "Discover more" },
+  "hero.video.desc": { es: "Video institucional SGS", en: "SGS institutional video" },
+  "hero.col.equipment.module": { es: "EQUIPMENT", en: "EQUIPMENT" },
+  "hero.col.equipment.badge": { es: "Líderes en Maquinaria Industrial", en: "Industrial Machinery Leaders" },
+  "hero.col.equipment.desc": {
+    es: "Más de 500 equipos disponibles para renta y venta. Cotización personalizada en menos de 24 horas.",
+    en: "Over 500 units available for rent and sale. Personalized quote in less than 24 hours.",
+  },
+  "hero.col.equipment.cta": { es: "Explorar Equipos", en: "Explore Equipment" },
+  "hero.col.rentals.module": { es: "RENTALS", en: "RENTALS" },
+  "hero.col.rentals.badge": { es: "Flexibilidad que Impulsa tu Operación", en: "Flexibility that Drives Your Operation" },
+  "hero.col.rentals.desc": {
+    es: "Alquiler de equipos con planes flexibles para cada necesidad y proyecto.",
+    en: "Equipment rental with flexible plans for every need and project.",
+  },
+  "hero.col.rentals.cta": { es: "Explorar Rentals", en: "Explore Rentals" },
+  "hero.col.parts.module": { es: "PARTS", en: "PARTS" },
+  "hero.col.parts.badge": { es: "Calidad que Mantiene tu Equipo en Marcha", en: "Quality that Keeps Your Equipment Running" },
+  "hero.col.parts.desc": {
+    es: "Repuestos originales y alternativos con disponibilidad inmediata.",
+    en: "Genuine and alternative parts with immediate availability.",
+  },
+  "hero.col.parts.cta": { es: "Explorar Parts", en: "Explore Parts" },
+
+  "featured.eyebrow": { es: "Featured", en: "Featured" },
+  "featured.title": { es: "Equipos destacados", en: "Featured equipment" },
+  "featured.subtitle": {
+    es: "Una selección de maquinaria GSE lista para tu operación. Al recorrer el carrusel verás las especificaciones y la descripción de cada unidad.",
+    en: "A selection of GSE machinery ready for your operation. As the carousel moves, you will see each unit’s specs and description.",
+  },
+  "featured.descFallback": {
+    es: "Consulta el detalle de este equipo para ver especificaciones completas y disponibilidad.",
+    en: "See this unit’s full specs and availability on the detail page.",
+  },
+  "featured.view": { es: "Ver equipo", en: "View equipment" },
 
   // Trust bar
   "trust.s1": { es: "Equipos en catálogo", en: "Units in catalog" },
@@ -367,12 +402,13 @@ export const dict = {
     en: "All rentals are handled by our sister company SGS Rentals, Inc. We created SGS Rentals to better serve our rentals customers; our rental fleet keeps growing with over 50 units already in service.",
   },
   "biz.div2.p2.before": {
-    es: "Ofrecemos rentas a corto y largo plazo en cualquier tipo de equipo. Visite",
-    en: "We offer short and long term rentals on any type of equipment. Visit",
+    es: "Ofrecemos rentas a corto y largo plazo en cualquier tipo de equipo. Consulte la disponibilidad en línea de todas las unidades en nuestra página de",
+    en: "We offer short and long term rentals on any type of equipment. Check availability online on all units in our",
   },
+  "biz.div2.p2.link": { es: "Rentals", en: "Rentals" },
   "biz.div2.p2.after": {
-    es: "para consultar disponibilidad en línea de todas las unidades.",
-    en: "to check availability online on all units.",
+    es: ".",
+    en: " page.",
   },
   "biz.div2.p3": {
     es: "Si busca comprar, consulte nuestra página de catálogo para ver equipos disponibles.",
@@ -428,6 +464,92 @@ export const dict = {
   "equipos.carousel.unavailable": { es: "Equipos no disponibles", en: "Equipment unavailable" },
   "equipos.carousel.featured": { es: "Destacado", en: "Featured" },
 
+  // Rentals
+  "rentals.title": { es: "SGS RENTALS", en: "SGS RENTALS" },
+  "rentals.subtitle": {
+    es: "Flota de Alquiler y Soluciones Flexibles para Operaciones Aeroportuarias",
+    en: "Rental Fleet and Flexible Solutions for Airport Operations",
+  },
+  "rentals.badge1": { es: "Mantenimiento Certificado", en: "Certified Maintenance" },
+  "rentals.badge2": { es: "Disponibilidad Inmediata", en: "Immediate Availability" },
+  "rentals.badge3": { es: "Cobertura Regional", en: "Regional Coverage" },
+  "rentals.loading": { es: "Cargando flota de alquiler…", en: "Loading rental fleet…" },
+  "rentals.error": { es: "Error al cargar la flota de alquiler.", en: "Error loading rental fleet." },
+  "rentals.empty": {
+    es: "No hay equipos de renta disponibles en esta categoría",
+    en: "No rental equipment available in this category",
+  },
+  "rentals.filter.category": { es: "Tipo de equipo", en: "Equipment type" },
+  "rentals.filter.capacity": { es: "Capacidad", en: "Capacity" },
+  "rentals.filter.all": { es: "Todos", en: "All" },
+  "rentals.filter.clear": { es: "Limpiar filtros", en: "Clear filters" },
+  "rentals.card.cta": { es: "Cotizar Renta", en: "Request Rental" },
+  "rentals.card.inquire": {
+    es: "Consultar disponibilidad",
+    en: "Inquire Future Availability",
+  },
+  "rentals.fleetCount": { es: "{count} unidades disponibles", en: "{count} units available" },
+  "rentals.availability.available": {
+    es: "🟢 Disponible para Entrega Inmediata",
+    en: "🟢 Available for Immediate Delivery",
+  },
+  "rentals.availability.longTerm": {
+    es: "Currently Rented (Long-term)",
+    en: "Currently Rented (Long-term)",
+  },
+  "rentals.availability.rented": {
+    es: "🟡 En Renta — Disponible a partir del {date}",
+    en: "🟡 On Rent — Available from {date}",
+  },
+  "rentals.availability.error": {
+    es: "No se pudo actualizar la disponibilidad en vivo. Las fechas se confirmarán al cotizar.",
+    en: "Live availability could not be refreshed. Dates will be confirmed when you request a quote.",
+  },
+  "rentals.quote.title": { es: "Request Rental Quote", en: "Request Rental Quote" },
+  "rentals.quote.calendar": { es: "Select rental period", en: "Select rental period" },
+  "rentals.quote.contact": { es: "Contact details", en: "Contact details" },
+  "rentals.quote.startDate": { es: "Start date", en: "Start date" },
+  "rentals.quote.endDate": { es: "End date", en: "End date" },
+  "rentals.quote.days": { es: "Estimated total days: {count}", en: "Estimated total days: {count}" },
+  "rentals.quote.selectRange": {
+    es: "Select a start date and an end date",
+    en: "Select a start date and an end date",
+  },
+  "rentals.quote.overlap": {
+    es: "The selected range overlaps blocked dates. Please choose another period.",
+    en: "The selected range overlaps blocked dates. Please choose another period.",
+  },
+  "rentals.quote.blockedHint": {
+    es: "Grayed-out dates are already booked or in maintenance.",
+    en: "Grayed-out dates are already booked or in maintenance.",
+  },
+  "rentals.quote.name": { es: "Name", en: "Name" },
+  "rentals.quote.email": { es: "Email", en: "Email" },
+  "rentals.quote.company": { es: "Company", en: "Company" },
+  "rentals.quote.phone": { es: "Phone", en: "Phone" },
+  "rentals.quote.address": { es: "Destination address", en: "Destination address" },
+  "rentals.quote.comments": { es: "Additional comments", en: "Additional comments" },
+  "rentals.quote.summary": { es: "Date summary", en: "Date summary" },
+  "rentals.quote.submit": { es: "Submit quote", en: "Submit quote" },
+  "rentals.quote.submitting": { es: "Sending…", en: "Sending…" },
+  "rentals.quote.success": {
+    es: "Request sent. The SGS Rentals team will contact you shortly.",
+    en: "Request sent. The SGS Rentals team will contact you shortly.",
+  },
+  "rentals.quote.error": {
+    es: "The quote could not be sent. Please try again.",
+    en: "The quote could not be sent. Please try again.",
+  },
+  "rentals.quote.close": { es: "Close", en: "Close" },
+  "rentals.quote.maxPeriod": {
+    es: "El periodo máximo de renta continua es de 6 meses. Para contratos más extensos, contáctenos directamente.",
+    en: "The maximum continuous rental period is 6 months. For longer contracts, please contact us directly.",
+  },
+  "rentals.quote.longTermHint": {
+    es: "Este equipo está en renta a largo plazo. Consulte disponibilidad futura a través del formulario de contacto.",
+    en: "This equipment is on a long-term rental. Inquire about future availability through the contact form.",
+  },
+
   // GSE Training
   "training.badge": { es: "DIVISIÓN EDUCATIVA SGS", en: "SGS EDUCATIONAL DIVISION" },
   "training.title": { es: "GS Training: Capacitación Técnica Especializada", en: "GS Training: Specialized Technical Training" },
@@ -457,6 +579,8 @@ export const dict = {
   "equipment.backButton": { es: "Volver al Catálogo", en: "Back to Catalog" },
   "equipment.noImage": { es: "Sin imagen", en: "No image" },
   "equipment.addQuote": { es: "AGREGAR A COTIZACIÓN", en: "ADD TO QUOTE" },
+  "equipment.addQuoteShort": { es: "Agregar a Cotización", en: "Add to Quote" },
+  "equipment.requestRental": { es: "Solicitar Renta", en: "Request Rental" },
   "equipment.removeQuote": { es: "Quitar de Cotización", en: "Remove from Quote" },
   "equipment.specs": { es: "Especificaciones", en: "Specifications" },
   "equipment.spec.workOrder": { es: "Orden de trabajo", en: "Work order" },
@@ -510,6 +634,10 @@ export const dict = {
   "contact.reason.repair": { es: "Servicios de Reparación", en: "Repair Services" },
   "contact.reason.support": { es: "Soporte Técnico", en: "Technical Support" },
   "contact.message": { es: "Mensaje *", en: "Message *" },
+  "contact.rentalInquiry": {
+    es: "Consulta de disponibilidad futura.\nID del equipo: {id}\nModelo: {model}",
+    en: "Future availability inquiry.\nEquipment ID: {id}\nModel: {model}",
+  },
   "contact.submit": { es: "Enviar", en: "Submit" },
   "contact.submitting": { es: "Enviando…", en: "Sending…" },
   "contact.error": {

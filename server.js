@@ -2,9 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import 'dotenv/config';
-import { sendQuoteEmail } from './server/lib/quoteMailer.js';
+import { sendQuoteEmail, buildRentalQuoteEmailHtml, RENTAL_QUOTE_TO } from './server/lib/quoteMailer.js';
 import { sendContactEmail, CONTACT_TO } from './server/lib/contactMailer.js';
-import { verifyRecaptcha } from './server/lib/recaptcha.js';
+import { enforceFormSecurity } from './server/lib/recaptcha.js';
+import {
+  buildAvailabilityMap,
+  exceedsMaxRentalPeriod,
+  rangesOverlap,
+  toISODate,
+} from './server/lib/rentalAvailability.js';
 
 const app = express();
 const PORT = 3001;
@@ -14,12 +20,15 @@ app.use(express.json());
 
 // Memoria caché para no pedir el Site ID en cada recarga (Optimización de velocidad)
 let cachedSiteId = null;
+let cachedBookingsSiteId = null;
+let cachedBookingsListId = null;
+let cachedBookingsColumns = null;
 
 // ----------------------------------------------------
 // LLAVES DE ACCESO (TOKENS)
 // ----------------------------------------------------
 
-// Única llave necesaria: Microsoft Graph
+// Única llave necesaria: Microsoft Graph (catálogo / lectura pública)
 async function getGraphToken() {
   const response = await axios.post(
     `https://login.microsoftonline.com/${process.env.SP_TENANT_ID}/oauth2/v2.0/token`,
@@ -31,6 +40,99 @@ async function getGraphToken() {
     })
   );
   return response.data.access_token;
+}
+
+// App Registration aislada para escritura de reservas y Mail.Send
+async function getRentalsAccessToken() {
+  const tenantId = process.env.AZURE_RENTALS_TENANT_ID || process.env.AZURE_TENANT_ID || process.env.SP_TENANT_ID;
+  const clientId = process.env.AZURE_RENTALS_CLIENT_ID;
+  const clientSecret = process.env.AZURE_RENTALS_CLIENT_SECRET;
+
+  if (!tenantId || !clientId || !clientSecret) {
+    throw new Error(
+      'Credenciales de Azure Rentals incompletas. Agrega AZURE_RENTALS_CLIENT_ID y AZURE_RENTALS_CLIENT_SECRET en .env'
+    );
+  }
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    scope: 'https://graph.microsoft.com/.default',
+    grant_type: 'client_credentials',
+  });
+
+  const response = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error_description || 'Error al obtener token de Rentals');
+  return data.access_token;
+}
+
+function rentalSenderEmail() {
+  return (
+    process.env.AZURE_RENTALS_SENDER_EMAIL ||
+    process.env.SENDER_EMAIL ||
+    process.env.SMTP_FROM ||
+    process.env.SMTP_USER ||
+    ''
+  );
+}
+
+function graphErrorBody(error) {
+  return error.response?.data || error.message;
+}
+
+function logGraphFailure(label, url, payload, error) {
+  console.error(`❌ ${label}`);
+  if (url) console.error('URL:', url);
+  if (payload) console.error('Payload:', JSON.stringify(payload, null, 2));
+  console.error('Graph innerError:', JSON.stringify(error.response?.data?.error?.innerError || graphErrorBody(error), null, 2));
+  console.error('Graph error completo:', JSON.stringify(graphErrorBody(error), null, 2));
+}
+
+async function sendRentalQuoteNotification(accessToken, payload) {
+  const sender = rentalSenderEmail();
+  const recipient = payload.to || RENTAL_QUOTE_TO;
+
+  if (!sender) {
+    throw new Error(
+      'AZURE_RENTALS_SENDER_EMAIL / SENDER_EMAIL no configurado. Debe ser un buzón con licencia de Exchange Online'
+    );
+  }
+
+  const html = buildRentalQuoteEmailHtml(payload);
+  const displayName =
+    payload.equipment.displayName ||
+    `${payload.equipment.manufacturer || ''} ${payload.equipment.model || ''}`.trim() ||
+    payload.equipment.title;
+  const subject = `New Rental Request - ${displayName} (${payload.customer.startDate} to ${payload.customer.endDate})`;
+  const mailPayload = {
+    message: {
+      subject,
+      body: {
+        contentType: 'HTML',
+        content: html,
+      },
+      toRecipients: [{ emailAddress: { address: recipient } }],
+    },
+    saveToSentItems: false,
+  };
+
+  console.log('[rentals/quote] Graph sendMail', { from: sender, to: recipient, subject });
+  return axios.post(
+    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(sender)}/sendMail`,
+    mailPayload,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
 }
 
 // Función auxiliar para obtener el Site ID optimizado
@@ -92,6 +194,233 @@ function getStatusRaw(fields) {
   return null;
 }
 
+function isRentalEquipment(fields) {
+  const value =
+    fields.Rentals ??
+    fields.rentals ??
+    Object.entries(fields).find(([key]) => key.toLowerCase() === "rentals")?.[1];
+  return value === true || value === 1 || value === "Yes";
+}
+
+function parseEquipmentReturnDate(fields) {
+  return (
+    toISODate(fields.ReturnDate) ||
+    toISODate(fields.EstimatedReturnDate) ||
+    toISODate(fields.EstimatedReturn) ||
+    toISODate(fields.AvailableFrom) ||
+    toISODate(fields.Return_x0020_Date) ||
+    null
+  );
+}
+
+function sanitizeText(value, maxLen) {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLen);
+}
+
+function isValidISODate(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function fetchAllGraphItems(url, accessToken) {
+  const items = [];
+  let nextUrl = url;
+
+  while (nextUrl) {
+    const response = await axios.get(nextUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    items.push(...(response.data.value || []));
+    nextUrl = response.data['@odata.nextLink'] || null;
+  }
+
+  return items;
+}
+
+function bookingsListName() {
+  return process.env.SP_BOOKINGS_LIST_NAME || process.env.SP_RENTALS_LIST_NAME || 'RentalBookings';
+}
+
+function siteUrlParts() {
+  const siteUrl = process.env.SP_SITE_URL;
+  if (!siteUrl) throw new Error('SP_SITE_URL no está definido en .env');
+  const parsed = new URL(siteUrl);
+  return {
+    hostname: parsed.hostname,
+    sitePath: parsed.pathname.replace(/\/$/, '') || '/',
+  };
+}
+
+function graphAuthHeaders(accessToken) {
+  return { Authorization: `Bearer ${accessToken}` };
+}
+
+function toBookingDateIso(dateStr, endOfDay = false) {
+  const day = String(dateStr).split('T')[0];
+  const time = endOfDay ? 'T23:59:59Z' : 'T00:00:00Z';
+  const parsed = new Date(`${day}${time}`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+function normalizeColumnKey(value) {
+  return String(value || '').toLowerCase().replace(/[\s_]/g, '');
+}
+
+async function resolveBookingsSiteId(accessToken) {
+  if (cachedBookingsSiteId) return cachedBookingsSiteId;
+  if (cachedSiteId) {
+    cachedBookingsSiteId = cachedSiteId;
+    return cachedBookingsSiteId;
+  }
+
+  const { hostname, sitePath } = siteUrlParts();
+  const url = `https://graph.microsoft.com/v1.0/sites/${hostname}:${sitePath}`;
+  try {
+    const response = await axios.get(url, { headers: graphAuthHeaders(accessToken) });
+    cachedBookingsSiteId = response.data.id;
+    cachedSiteId = cachedBookingsSiteId;
+    console.log('[rentals] Site ID cacheado:', cachedBookingsSiteId);
+    return cachedBookingsSiteId;
+  } catch (error) {
+    logGraphFailure('GET siteId', url, null, error);
+    throw error;
+  }
+}
+
+async function fetchBookingsListId(accessToken, siteId) {
+  const listName = bookingsListName();
+  const escapedName = listName.replace(/'/g, "''");
+  const filterUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists?$filter=${encodeURIComponent(`displayName eq '${escapedName}'`)}`;
+
+  try {
+    const response = await axios.get(filterUrl, {
+      headers: {
+        ...graphAuthHeaders(accessToken),
+        Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly',
+      },
+    });
+    const match = response.data.value?.find(Boolean);
+    if (match?.id) return match.id;
+  } catch (error) {
+    logGraphFailure('GET lists $filter displayName', filterUrl, null, error);
+  }
+
+  const byNameUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${encodeURIComponent(listName)}`;
+  try {
+    const response = await axios.get(byNameUrl, { headers: graphAuthHeaders(accessToken) });
+    if (response.data?.id) return response.data.id;
+  } catch (error) {
+    logGraphFailure('GET list by name', byNameUrl, null, error);
+  }
+
+  return process.env.SHAREPOINT_RENTAL_LIST_ID || process.env.SP_BOOKINGS_LIST_ID || null;
+}
+
+async function resolveBookingsListId(accessToken, siteId) {
+  if (cachedBookingsListId) return cachedBookingsListId;
+
+  let listId = await fetchBookingsListId(accessToken, siteId);
+  if (!listId) {
+    console.warn('[rentals] Token Rentals no resolvió RentalBookings; reintento con token de catálogo (solo lectura)');
+    const catalogToken = await getGraphToken();
+    listId = await fetchBookingsListId(catalogToken, siteId);
+  }
+
+  if (!listId) {
+    throw new Error(`No se encontró la lista ${bookingsListName()} en el sitio de SharePoint.`);
+  }
+
+  cachedBookingsListId = listId;
+  console.log('[rentals] List ID cacheado (RentalBookings):', cachedBookingsListId);
+  return cachedBookingsListId;
+}
+
+async function getBookingsContext(accessToken) {
+  const siteId = await resolveBookingsSiteId(accessToken);
+  const listId = await resolveBookingsListId(accessToken, siteId);
+  return { siteId, listId };
+}
+
+async function getBookingsColumns(accessToken, siteId, listId) {
+  if (cachedBookingsColumns) return cachedBookingsColumns;
+  const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/columns?$select=name,displayName`;
+  try {
+    const columns = await fetchAllGraphItems(url, accessToken);
+    cachedBookingsColumns = columns;
+    console.log(
+      '[rentals] Columnas de RentalBookings:',
+      columns.map((column) => `${column.displayName} [${column.name}]`)
+    );
+    return columns;
+  } catch (error) {
+    logGraphFailure('GET list columns', url, null, error);
+    throw error;
+  }
+}
+
+function resolveGraphFieldName(columns, desiredName) {
+  const wanted = normalizeColumnKey(desiredName);
+  const column = columns.find(
+    (item) =>
+      normalizeColumnKey(item.name) === wanted ||
+      normalizeColumnKey(item.displayName) === wanted
+  );
+  return column?.name || null;
+}
+
+function formatContactMethod(email, phone) {
+  return `Email: ${email} / Phone: ${phone}`;
+}
+
+function buildBookingFields(desiredFields, columns) {
+  const coreKeys = new Set([
+    'Title',
+    'StartDate',
+    'EndDate',
+    'BookingStatus',
+    'ClientName',
+    'BookingAddress',
+    'ContactMethod',
+  ]);
+  if (!columns?.length) {
+    return Object.fromEntries(
+      Object.entries(desiredFields).filter(([key]) => coreKeys.has(key))
+    );
+  }
+
+  const fields = {};
+  for (const [key, value] of Object.entries(desiredFields)) {
+    const graphName = resolveGraphFieldName(columns, key);
+    if (!graphName) {
+      console.warn(`[rentals] Columna ausente en RentalBookings, se omite: ${key}`);
+      continue;
+    }
+    fields[graphName] = value;
+  }
+  return fields;
+}
+
+async function fetchRentalBookings(accessToken, siteId, listId) {
+  const listKey = listId || encodeURIComponent(bookingsListName());
+  const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listKey}/items?$expand=fields&$top=200`;
+  const items = await fetchAllGraphItems(url, accessToken);
+
+  return items.map((item) => {
+    const fields = item.fields || {};
+    return {
+      workOrder: String(fields.Title || '').trim(),
+      startDate: fields.StartDate,
+      endDate: fields.EndDate,
+      bookingStatus: parseSharePointChoice(fields.BookingStatus),
+    };
+  });
+}
+
 function parseMfgYear(fields) {
   const raw =
     fields.MFGDate ||
@@ -127,14 +456,15 @@ app.get('/api/equipment', async (req, res) => {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    const items = listResponse.data.value.filter(item => {
+    const rawItems = listResponse.data.value;
+    const items = rawItems.filter(item => {
       const f = item.fields;
       return f.AddedtoWebsite === true || f.AddedtoWebsite === "Yes" || f.Added_x0020_to_x0020_Website === true;
     }).map(item => {
       const f = item.fields;
       const rawCategory = f.AssetType || f.Equipmenttype || "";
       const workOrder = f.Title || ""; // El número de WO es la clave para la foto
-      
+
       return {
         id: item.id,
         title: workOrder,
@@ -148,6 +478,8 @@ app.get('/api/equipment', async (req, res) => {
         // Apuntamos a la nueva ruta pasándole el número de WO
         photoUrl: workOrder ? `/api/image/${workOrder}` : `https://via.placeholder.com/400x300/e2e8f0/475569?text=Sin+WO`,
         isFeatured: f.isFeatured === true || f.isFeatured === "Yes",
+        isRental: isRentalEquipment(f),
+        returnDate: parseEquipmentReturnDate(f),
         displayName: `${f.Manufacturer || ""}-${f.Model || ""} ${f.FuelType || ""} ${rawCategory} - ${workOrder}`,
         description: f.Description || f.description || "No description available for this equipment.",
       };
@@ -230,15 +562,225 @@ app.get('/api/gallery/:wo', async (req, res) => {
   }
 });
 
-// 4. RUTA COTIZACIÓN: Recibe formulario y envía correo a ventas
-app.post('/api/quote', async (req, res) => {
-  // Ajuste: Bypass automático si estamos en desarrollo local o con key de prueba
-  const isDevelopment = process.env.NODE_ENV === 'development' || process.env.RECAPTCHA_SECRET_KEY === 'test';
-  if (!isDevelopment) {
-    if (!(await verifyRecaptcha(req, res))) return;
-  } else {
-    console.log('🚀 [reCAPTCHA] Bypass activado en ambiente de desarrollo para /api/quote');
+// 4. RUTA DISPONIBILIDAD RENTALS: Consulta RentalBookings en SharePoint
+app.get('/api/rentals/availability', async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+
+  try {
+    const accessToken = await getGraphToken();
+    const { siteId, listId } = await getBookingsContext(accessToken);
+    const bookings = await fetchRentalBookings(accessToken, siteId, listId);
+    res.json(buildAvailabilityMap(bookings));
+  } catch (error) {
+    console.error('Error in /api/rentals/availability:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch rental availability' });
   }
+});
+
+// 5. RUTA COTIZACIÓN RENTALS: Valida rango vs SharePoint y envía correo
+app.post('/api/rentals/quote', async (req, res) => {
+  const security = await enforceFormSecurity(req, res);
+  if (security !== 'ok') return;
+
+  const { customer, equipment } = req.body ?? {};
+
+  const fullName = sanitizeText(customer?.fullName, 120);
+  const email = sanitizeText(customer?.email, 254);
+  const phone = sanitizeText(customer?.phone, 40);
+  const company = sanitizeText(customer?.company, 120);
+  const comments = sanitizeText(customer?.comments, 2000);
+  const address = sanitizeText(customer?.address, 300);
+  const startDate = sanitizeText(customer?.startDate, 10);
+  const endDate = sanitizeText(customer?.endDate, 10);
+
+  if (!fullName || !email || !phone || !company || !address || !startDate || !endDate) {
+    return res.status(400).json({ error: 'Missing required rental quote fields' });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+
+  if (!isValidISODate(startDate) || !isValidISODate(endDate) || endDate < startDate) {
+    return res.status(400).json({ error: 'Invalid rental date range' });
+  }
+
+  if (exceedsMaxRentalPeriod(startDate, endDate)) {
+    return res.status(400).json({
+      error:
+        'El periodo máximo de renta continua es de 6 meses. Para contratos más extensos, contáctenos directamente.',
+    });
+  }
+
+  if (!equipment?.id || !sanitizeText(equipment?.title, 80)) {
+    return res.status(400).json({ error: 'Equipment work order is required' });
+  }
+
+  const workOrder = sanitizeText(equipment.title, 80);
+  const startIso = toBookingDateIso(startDate, false);
+  const endIso = toBookingDateIso(endDate, true);
+  if (!startIso || !endIso) {
+    return res.status(400).json({ error: 'Invalid rental date range' });
+  }
+
+  const estimatedDays = Math.round(
+    (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86400000
+  ) + 1;
+  const manufacturer = sanitizeText(equipment.manufacturer, 80);
+  const model = sanitizeText(equipment.model, 80);
+  const displayName =
+    sanitizeText(equipment.displayName, 200) ||
+    `${manufacturer} ${model}`.trim() ||
+    workOrder;
+
+  let accessToken;
+
+  try {
+    console.log('--- Creando registro en SharePoint (RentalBookings) ---');
+    accessToken = await getRentalsAccessToken();
+    console.log('[rentals/quote] Token de Rentals obtenido');
+
+    const { siteId, listId } = await getBookingsContext(accessToken);
+    const itemsUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items?$expand=fields&$top=200`;
+    console.log('[rentals/quote] Validando overlap en RentalBookings:', itemsUrl);
+
+    const existingItems = await fetchAllGraphItems(itemsUrl, accessToken);
+    const bookings = existingItems.map((item) => {
+      const fields = item.fields || {};
+      return {
+        workOrder: String(fields.Title || '').trim(),
+        startDate: fields.StartDate,
+        endDate: fields.EndDate,
+        bookingStatus: parseSharePointChoice(fields.BookingStatus),
+      };
+    });
+    const availability = buildAvailabilityMap(bookings)[workOrder];
+    const requestedRange = { from: startDate, to: endDate };
+    const blocked = availability?.disabledRanges?.some((range) => rangesOverlap(requestedRange, range));
+    if (blocked) {
+      console.log('[rentals/quote] Rango bloqueado por reserva existente', { workOrder, startDate, endDate });
+      return res.status(409).json({ error: 'Selected dates overlap an existing booking' });
+    }
+
+    const desiredFields = {
+      Title: workOrder,
+      StartDate: startIso,
+      EndDate: endIso,
+      BookingStatus: 'Pendiente',
+      ClientName: fullName,
+      BookingAddress: address,
+      ContactMethod: formatContactMethod(email, phone),
+      ClientEmail: email,
+      Phone: phone,
+      Company: company,
+      EquipmentId: String(equipment.id),
+      Comments: comments || '',
+    };
+
+    let columns = [];
+    try {
+      columns = await getBookingsColumns(accessToken, siteId, listId);
+    } catch (columnsError) {
+      console.warn('[rentals/quote] No se pudieron leer columnas; se enviarán los campos canónicos');
+    }
+
+    const createUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`;
+    const coreKeys = new Set([
+      'Title',
+      'StartDate',
+      'EndDate',
+      'BookingStatus',
+      'ClientName',
+      'BookingAddress',
+      'ContactMethod',
+    ]);
+    const mappedFields = buildBookingFields(desiredFields, columns);
+    mappedFields.ContactMethod = desiredFields.ContactMethod;
+    const itemPayload = { fields: mappedFields };
+
+    console.log('📤 Enviando item a RentalBookings:', createUrl, JSON.stringify(itemPayload));
+
+    let spRes;
+    try {
+      spRes = await axios.post(createUrl, itemPayload, {
+        headers: {
+          ...graphAuthHeaders(accessToken),
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (createError) {
+      logGraphFailure('POST RentalBookings (campos mapeados)', createUrl, itemPayload, createError);
+      try {
+        columns = await getBookingsColumns(accessToken, siteId, listId);
+      } catch {
+        // already logged
+      }
+
+      const coreDesired = Object.fromEntries(
+        Object.entries(desiredFields).filter(([key]) => coreKeys.has(key))
+      );
+      const corePayload = { fields: buildBookingFields(coreDesired, columns) };
+      corePayload.fields.ContactMethod = desiredFields.ContactMethod;
+      console.log('📤 Reintento con campos canónicos:', JSON.stringify(corePayload));
+      spRes = await axios.post(createUrl, corePayload, {
+        headers: {
+          ...graphAuthHeaders(accessToken),
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
+    console.log('✅ Item creado con éxito en SharePoint! ID:', spRes.data?.id);
+  } catch (spError) {
+    logGraphFailure('SharePoint RentalBookings', null, null, spError);
+    return res.status(500).json({
+      step: 'sharepoint',
+      error: graphErrorBody(spError),
+    });
+  }
+
+  try {
+    console.log('--- Enviando notificación por correo ---');
+    await sendRentalQuoteNotification(accessToken, {
+      customer: {
+        fullName,
+        email,
+        phone,
+        company,
+        address,
+        comments,
+        startDate,
+        endDate,
+      },
+      equipment: {
+        id: equipment.id,
+        title: workOrder,
+        manufacturer,
+        model,
+        equipmentType: sanitizeText(equipment.equipmentType, 80),
+        displayName,
+      },
+      receivedAt: new Date().toISOString(),
+      estimatedDays,
+      to: RENTAL_QUOTE_TO,
+    });
+    console.log('✅ Correo enviado con éxito');
+  } catch (mailError) {
+    console.error('❌ Error en Email:', JSON.stringify(graphErrorBody(mailError), null, 2));
+    return res.json({
+      success: true,
+      warning: 'Guardado en SharePoint pero falló el envío de correo',
+    });
+  }
+
+  return res.json({ success: true });
+});
+
+// 6. RUTA COTIZACIÓN: Recibe formulario y envía correo a ventas
+app.post('/api/quote', async (req, res) => {
+  const security = await enforceFormSecurity(req, res);
+  if (security !== 'ok') return;
 
   const { customer, equipment } = req.body ?? {};
 
@@ -296,15 +838,10 @@ app.post('/api/quote', async (req, res) => {
   }
 });
 
-// 5. RUTA CONTACTO: Recibe formulario de contacto y envía correo
+// 7. RUTA CONTACTO: Recibe formulario de contacto y envía correo
 app.post('/api/contact', async (req, res) => {
-  // Ajuste: Bypass automático si estamos en desarrollo local o con key de prueba
-  const isDevelopment = process.env.NODE_ENV === 'development' || process.env.RECAPTCHA_SECRET_KEY === 'test';
-  if (!isDevelopment) {
-    if (!(await verifyRecaptcha(req, res))) return;
-  } else {
-    console.log('🚀 [reCAPTCHA] Bypass activado en ambiente de desarrollo para /api/contact');
-  }
+  const security = await enforceFormSecurity(req, res);
+  if (security !== 'ok') return;
 
   const { firstName, lastName, companyName, email, reason, message } = req.body ?? {};
 

@@ -1,6 +1,6 @@
-import { FormEvent, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { GoogleReCaptchaProvider, useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 import { ChevronRight, Loader2, MessageSquare, Phone, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useI18n, type DictKey } from "@/lib/i18n";
-
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
-const IS_DEV_TEST_KEY = !RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY === "test";
 
 type ContactReason = "Equipment Purchase" | "Equipment Rental" | "Repair Services" | "Technical Support";
 
@@ -44,6 +41,11 @@ const premiumCard =
 
 const fieldClass = "h-11 rounded-lg border-slate-200 bg-white";
 
+function sanitizeQueryParam(value: string | null, maxLen: number): string {
+  if (!value) return "";
+  return value.replace(/[<>]/g, "").trim().slice(0, maxLen);
+}
+
 function ContactInfoBlock({
   icon: Icon,
   title,
@@ -68,41 +70,56 @@ function ContactInfoBlock({
   );
 }
 
-function ContactForm() {
-  const { executeRecaptcha } = useGoogleReCaptcha();
+export default function Contacto() {
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { t } = useI18n();
-  const [form, setForm] = useState<ContactFormState>(initialForm);
+  const [searchParams] = useSearchParams();
+  const inquiryId = sanitizeQueryParam(
+    searchParams.get("equipmentId") || searchParams.get("id"),
+    80
+  );
+  const inquiryModel = sanitizeQueryParam(searchParams.get("model"), 120);
+  const [form, setForm] = useState<ContactFormState>(() =>
+    inquiryId || inquiryModel
+      ? { ...initialForm, reason: "Equipment Rental" }
+      : initialForm
+  );
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!inquiryId && !inquiryModel) return;
+    setForm((prev) => {
+      if (prev.message.trim()) return { ...prev, reason: "Equipment Rental" };
+      return {
+        ...prev,
+        reason: "Equipment Rental",
+        message: t("contact.rentalInquiry", {
+          id: inquiryId || "—",
+          model: inquiryModel || "—",
+        }),
+      };
+    });
+  }, [inquiryId, inquiryModel, t]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || !recaptchaToken) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      let recaptchaToken: string;
-
-      if (IS_DEV_TEST_KEY) {
-        recaptchaToken = "test";
-      } else {
-        if (!executeRecaptcha) {
-          console.error("ReCAPTCHA not yet available");
-          setSubmitting(false);
-          return;
-        }
-        recaptchaToken = await executeRecaptcha("contact_form");
-      }
-
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           recaptchaToken,
+          b_website_hp: honeypot,
         }),
       });
 
@@ -112,11 +129,14 @@ function ContactForm() {
       }
 
       setForm(initialForm);
+      setHoneypot("");
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("contact.error"));
     } finally {
       setSubmitting(false);
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
     }
   };
 
@@ -262,10 +282,34 @@ function ContactForm() {
                   </p>
                 ) : null}
 
+                <input
+                  type="text"
+                  name="b_website_hp"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ display: "none", opacity: 0, position: "absolute", left: "-9999px" }}
+                />
+
+                <div className="my-4 flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                    onChange={(token) => setRecaptchaToken(token)}
+                    onExpired={() => setRecaptchaToken(null)}
+                    theme="light"
+                  />
+                </div>
+
                 <Button
                   type="submit"
-                  disabled={submitting}
-                  className="h-12 w-full rounded-xl bg-accent px-8 font-bold uppercase tracking-wider text-accent-foreground shadow-glow hover:bg-accent-hover disabled:opacity-50 sm:w-auto"
+                  disabled={!recaptchaToken || submitting}
+                  className={cn(
+                    "h-12 w-full rounded-xl bg-accent px-8 font-bold uppercase tracking-wider text-accent-foreground shadow-glow hover:bg-accent-hover sm:w-auto",
+                    (!recaptchaToken || submitting) && "cursor-not-allowed opacity-50"
+                  )}
                 >
                   {submitting ? (
                     <>
@@ -338,16 +382,5 @@ function ContactForm() {
         </aside>
       </div>
     </main>
-  );
-}
-
-export default function Contacto() {
-  return (
-    <GoogleReCaptchaProvider
-      reCaptchaKey={import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? ""}
-      useEnterprise={true}
-    >
-      <ContactForm />
-    </GoogleReCaptchaProvider>
   );
 }

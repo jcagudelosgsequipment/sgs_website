@@ -15,6 +15,7 @@ import RepairServices from "./pages/RepairServices.tsx";
 import Nosotros from "./pages/Nosotros.tsx";
 import Contacto from "./pages/Contacto.tsx";
 import QuotePage from "./pages/QuotePage.tsx";
+import Rentals from "./pages/Rentals.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
               <Route index element={<Index />} />
               <Route path="equipos" element={<Equipos />} />
               <Route path="equipos/:id" element={<EquipmentDetail />} />
+              <Route path="rentals" element={<Rentals />} />
               <Route path="categorias" element={<Categorias />} />
               <Route path="servicios" element={<Servicios />} />
               <Route path="servicios/reparacion" element={<RepairServices />} />

@@ -1,5 +1,6 @@
 import { HeroSection } from "@/components/sgs/HeroSection";
 import { TrustBar } from "@/components/sgs/TrustBar";
+import { FeaturedSection } from "@/components/sgs/home/FeaturedSection";
 import { BusinessDivisions } from "@/components/sgs/home/BusinessDivisions";
 import { VideoShowcase } from "@/components/sgs/home/VideoShowcase";
 import { WhyChooseSGS } from "@/components/sgs/home/WhyChooseSGS";
@@ -8,6 +9,7 @@ const Index = () => (
   <main className="min-h-screen max-w-full overflow-x-clip bg-background">
     <HeroSection />
     <TrustBar />
+    <FeaturedSection />
     <WhyChooseSGS />
     <BusinessDivisions />
     <VideoShowcase />

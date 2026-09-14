@@ -8,21 +8,23 @@ import {
   EquipmentFilters,
   type EquipmentFilterValues,
 } from "@/components/equipment/EquipmentFilters";
+import { RentalQuoteModal } from "@/components/rentals/RentalQuoteModal";
 import { fetchEquipment } from "@/services/equipmentService";
+import { useRentalAvailability } from "@/hooks/useRentalAvailability";
 import { useI18n } from "@/lib/i18n";
-import {
-  EQUIPMENT_CATEGORIES,
-  type EquipmentCategory,
-  type EquipmentItem,
-} from "@/types/equipment";
+import { DEFAULT_RENTAL_AVAILABILITY, getEquipmentAvailability } from "@/lib/rentalAvailability";
+import type { EquipmentCategory, EquipmentItem } from "@/types/equipment";
 
 type SelectedCategory = "All" | EquipmentCategory;
 
-const parseCategoryParam = (value: string | null): SelectedCategory => {
+const isRentalItem = (item: EquipmentItem) => item.isRental === true;
+
+const parseCategoryParam = (
+  value: string | null,
+  validCategories: readonly string[]
+): SelectedCategory => {
   if (!value) return "All";
-  return EQUIPMENT_CATEGORIES.includes(value as EquipmentCategory)
-    ? (value as EquipmentCategory)
-    : "All";
+  return validCategories.includes(value) ? (value as EquipmentCategory) : "All";
 };
 
 const parseYear = (value?: string): number | null => {
@@ -47,18 +49,29 @@ const filtersFromSearchParams = (params: URLSearchParams): EquipmentFilterValues
   yearMax: params.get("yearMax") ?? "",
 });
 
-const Equipos = () => {
+const Rentals = () => {
   const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
+  const [quoteEquipment, setQuoteEquipment] = useState<EquipmentItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { availabilityMap, availabilityError, refreshAvailability } = useRentalAvailability({
+    active: quoteEquipment !== null,
+  });
+  const availabilityWarning = availabilityError ? t("rentals.availability.error") : null;
+
+  const rentalCategories = useMemo(
+    () => uniqueSorted(equipment.map((item) => item.equipmentType ?? "")) as EquipmentCategory[],
+    [equipment]
+  );
+
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategory>(() =>
-    parseCategoryParam(searchParams.get("category"))
+    parseCategoryParam(searchParams.get("category"), rentalCategories)
   );
   const [filters, setFilters] = useState<EquipmentFilterValues>(() =>
     filtersFromSearchParams(searchParams)
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -67,12 +80,12 @@ const Equipos = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await fetchEquipment();
+        const equipmentResult = await fetchEquipment();
         if (!isMounted) return;
-        setEquipment(data);
+        setEquipment(equipmentResult.filter(isRentalItem));
       } catch {
         if (!isMounted) return;
-        setError(t("equipos.error"));
+        setError(t("rentals.error"));
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -86,9 +99,9 @@ const Equipos = () => {
   }, [t]);
 
   useEffect(() => {
-    setSelectedCategory(parseCategoryParam(searchParams.get("category")));
+    setSelectedCategory(parseCategoryParam(searchParams.get("category"), rentalCategories));
     setFilters(filtersFromSearchParams(searchParams));
-  }, [searchParams]);
+  }, [searchParams, rentalCategories]);
 
   const syncParams = (category: SelectedCategory, nextFilters: EquipmentFilterValues) => {
     const params = new URLSearchParams(searchParams);
@@ -209,7 +222,8 @@ const Equipos = () => {
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 md:px-6">
         <header className="space-y-2">
-          <h1 className="text-2xl font-bold md:text-3xl">{t("equipos.title")}</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{t("rentals.title")}</h1>
+          <p className="text-sm text-muted-foreground md:text-base">{t("rentals.subtitle")}</p>
         </header>
 
         <div className="flex w-full flex-col items-start gap-8 lg:flex-row">
@@ -237,16 +251,21 @@ const Equipos = () => {
               }}
             />
             <EquipmentCategoryFilter
-              categories={EQUIPMENT_CATEGORIES}
+              categories={rentalCategories}
               selectedCategory={selectedCategory}
               onCategoryChange={handleCategoryChange}
             />
           </aside>
 
           <div className="w-full flex-1">
+            {availabilityWarning && !isLoading ? (
+              <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700">
+                {availabilityWarning}
+              </p>
+            ) : null}
             {isLoading ? (
               <p className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-                {t("equipos.loading")}
+                {t("rentals.loading")}
               </p>
             ) : error ? (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">
@@ -254,15 +273,35 @@ const Equipos = () => {
               </p>
             ) : filteredEquipment.length === 0 ? (
               <p className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-                {t("equipos.empty")}
+                {t("rentals.empty")}
               </p>
             ) : (
               <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {filteredEquipment.map((item) => (
-                  <EquipmentCard key={String(item.id)} equipment={item} />
+                  <EquipmentCard
+                    key={String(item.id)}
+                    equipment={item}
+                    availability={getEquipmentAvailability(availabilityMap, item.title)}
+                    onQuoteClick={(item) => {
+                      setQuoteEquipment(item);
+                      void refreshAvailability();
+                    }}
+                  />
                 ))}
               </div>
             )}
+            <RentalQuoteModal
+              open={quoteEquipment !== null}
+              equipment={quoteEquipment}
+              availability={
+                quoteEquipment
+                  ? getEquipmentAvailability(availabilityMap, quoteEquipment.title)
+                  : DEFAULT_RENTAL_AVAILABILITY
+              }
+              onOpenChange={(open) => {
+                if (!open) setQuoteEquipment(null);
+              }}
+            />
           </div>
         </div>
       </section>
@@ -270,4 +309,6 @@ const Equipos = () => {
   );
 };
 
-export default Equipos;
+export default function RentalsPage() {
+  return <Rentals />;
+}

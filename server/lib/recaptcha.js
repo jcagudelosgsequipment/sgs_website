@@ -1,67 +1,63 @@
-import axios from 'axios';
-
-const RECAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
-
-function isLocalHost(req) {
-  const host = (req.hostname || '').toLowerCase();
-  return host === 'localhost' || host === '127.0.0.1';
-}
-
-function isDevelopmentBypass(req) {
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-  const isDevEnv =
-    process.env.NODE_ENV === 'development' ||
-    !secretKey ||
-    secretKey === 'test';
-
-  return isDevEnv || isLocalHost(req);
-}
-
 /**
- * Validates Google reCAPTCHA v2/v3 token from req.body.recaptchaToken.
- * v3 responses enforce a minimum trust score of 0.5; v2 only checks success.
- * Skips verification entirely in development, test-key, or localhost contexts.
- * @returns {Promise<boolean>} true if the request may proceed, false if blocked
+ * Verifies a Google reCAPTCHA v2 token against Google's siteverify API.
+ * Rejects missing tokens and the literal "test" bypass value.
+ * @param {string|undefined|null} token
+ * @param {string|undefined|null} remoteIp
+ * @returns {Promise<boolean>}
  */
-export async function verifyRecaptcha(req, res) {
-  if (isDevelopmentBypass(req)) {
-    console.log('🚀 [reCAPTCHA] Ambiente de desarrollo detectado. Bypass exitoso.');
-    return true;
-  }
-
-  const recaptchaToken = req.body?.recaptchaToken;
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-
-  if (!recaptchaToken?.trim()) {
-    res.status(400).json({ error: 'Captcha verification token is required.' });
+export async function verifyRecaptcha(token, remoteIp) {
+  if (!token || token === 'test') return false;
+  const secret = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secret) {
+    console.error('❌ ERROR CRÍTICO: RECAPTCHA_SECRET_KEY no está definida en el .env');
     return false;
   }
 
   try {
-    const { data } = await axios.post(
-      RECAPTCHA_VERIFY_URL,
-      new URLSearchParams({
-        secret: secretKey,
-        response: recaptchaToken.trim(),
-      }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
+    const params = new URLSearchParams({
+      secret: secret,
+      response: token,
+      ...(remoteIp ? { remoteip: remoteIp } : {}),
+    });
 
-    const isV3Response = typeof data.score === 'number';
-    const failedV3 = isV3Response && data.score < 0.5;
+    const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
 
-    if (!data.success || failedV3) {
-      console.warn(
-        `🛑 Petición bloqueada por reCAPTCHA v3. Score obtenido: ${isV3Response ? data.score : 'N/A (v2)'}`
-      );
-      res.status(403).json({ error: 'Bot detected or low trust score. Verification failed.' });
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('[recaptcha] Verification request failed:', error.message);
-    res.status(403).json({ error: 'Bot detected or low trust score. Verification failed.' });
+    const data = await res.json();
+    return data.success === true;
+  } catch (err) {
+    console.error('❌ Error comunicando con Google siteverify:', err);
     return false;
   }
+}
+
+/**
+ * Silent honeypot + strict reCAPTCHA gate for mail/quote endpoints.
+ * @returns {Promise<'honeypot'|'blocked'|'ok'>}
+ */
+export async function enforceFormSecurity(req, res) {
+  if (req.body?.b_website_hp) {
+    res.status(200).json({ success: true });
+    return 'honeypot';
+  }
+
+  const clientIp =
+    req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
+    req.socket.remoteAddress;
+
+  const isValid = await verifyRecaptcha(req.body?.recaptchaToken, clientIp);
+
+  if (!isValid) {
+    console.warn(`[Seguridad] Intento bloqueado por reCAPTCHA inválido desde IP: ${clientIp}`);
+    res.status(403).json({
+      success: false,
+      error: 'Verificación de seguridad fallida. Por favor, resuelve el captcha interactivo.',
+    });
+    return 'blocked';
+  }
+
+  return 'ok';
 }

@@ -14,7 +14,6 @@ import {
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useHomeWatermark } from "@/contexts/HomeWatermarkContext";
 import { useQuote } from "@/contexts/QuoteContext";
 import { useI18n, type DictKey } from "@/lib/i18n";
 import { EQUIPMENT_CATEGORIES } from "@/types/equipment";
@@ -25,6 +24,7 @@ type NavItem = { key: NavDropdown | string; labelKey: DictKey; href: string; dro
 
 const navItems: NavItem[] = [
   { key: "equipos", labelKey: "nav.equipos", href: "/equipos", dropdown: "equipos" },
+  { key: "rentals", labelKey: "nav.rentals", href: "/rentals" },
   { key: "servicios", labelKey: "nav.servicios", href: "/servicios", dropdown: "servicios" },
   { key: "nosotros", labelKey: "nav.nosotros", href: "/nosotros" },
   { key: "contacto", labelKey: "nav.contacto", href: "/contacto" },
@@ -84,7 +84,7 @@ const LangToggle = ({ scrolled }: { scrolled: boolean }) => {
       )}
     >
       <Languages className="w-3.5 h-3.5" />
-      <span className="uppercase">{lang === "es" ? "EN" : "ES"}</span>
+      <span className="uppercase">{lang}</span>
     </button>
   );
 };
@@ -96,10 +96,8 @@ export const Navbar = () => {
   const { t, translateCategory } = useI18n();
   const { pathname } = useLocation();
   const servicesDropdownId = useId();
-  const { watermarkVisible } = useHomeWatermark();
   const isHome = pathname === "/";
   const solidNav = scrolled || !isHome;
-  const showNavbarLogo = !isHome || !watermarkVisible;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -118,14 +116,7 @@ export const Navbar = () => {
       )}
     >
       <div className="container mx-auto h-[88px] flex items-center justify-between gap-6">
-        <div
-          className={cn(
-            "transition-opacity duration-300",
-            showNavbarLogo ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-        >
-          <Logo light={!solidNav} />
-        </div>
+        <Logo light={!solidNav} />
 
         <nav className="hidden lg:flex items-center gap-8">
           {navItems.map((item) => {

@@ -55,4 +55,19 @@ export interface EquipmentItem {
   isFeatured: boolean;
   description?: string;
   addToWebsite?: boolean;
+  isRental?: boolean;
+  returnDate?: string | null;
 }
+
+export interface DisabledDateRange {
+  from: string;
+  to: string;
+}
+
+export interface RentalAvailability {
+  isAvailableNow: boolean;
+  availableFrom: string | null;
+  disabledRanges: DisabledDateRange[];
+}
+
+export type RentalAvailabilityMap = Record<string, RentalAvailability>;
