@@ -58,9 +58,9 @@ const contactRows: ContactRow[] = [
 
     labelKey: "footer.contact.address",
 
-    value: "3630 E 10th Ct, Hialeah, FL 33013, USA",
+    value: "9165 NW 96 Street, Miami FL 33178",
 
-    href: "https://maps.google.com/?q=3630+E+10th+Ct+Hialeah+FL+33013",
+    href: "https://maps.google.com/?q=9165+NW+96+Street+Miami+FL+33178",
 
   },
 

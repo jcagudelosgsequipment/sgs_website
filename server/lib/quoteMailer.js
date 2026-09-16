@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 const QUOTE_TO = process.env.QUOTE_TO || 'sales@sgsequipment.com';
-export const RENTAL_QUOTE_TO = process.env.RENTAL_QUOTE_TO || 'jcagudelo@sgsequipment.com';
+export const RENTAL_QUOTE_TO = process.env.RENTAL_QUOTE_TO || 'sales@sgsequipment.com';
 
 function escapeHtml(value) {
   return String(value ?? '')
