@@ -15,7 +15,28 @@ import {
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+const allowedOrigins = [
+  'https://sgsequipment.com',
+  'https://www.sgsequipment.com',
+  'https://sgs.rentals',
+  'https://www.sgs.rentals',
+  'http://localhost:5173',
+  'http://localhost:8000',
+  'http://localhost:3000',
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Bloqueado por política CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Memoria caché para no pedir el Site ID en cada recarga (Optimización de velocidad)

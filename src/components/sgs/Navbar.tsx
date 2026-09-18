@@ -17,17 +17,28 @@ import { cn } from "@/lib/utils";
 import { useQuote } from "@/contexts/QuoteContext";
 import { useI18n, type DictKey } from "@/lib/i18n";
 import { EQUIPMENT_CATEGORIES } from "@/types/equipment";
+import { isRentalsHost, MAIN_DOMAIN_URL, RENTALS_DOMAIN_URL } from "@/utils/domain";
 
 type NavDropdown = "equipos" | "servicios";
 
-type NavItem = { key: NavDropdown | string; labelKey: DictKey; href: string; dropdown?: NavDropdown };
+type NavItem = {
+  key: NavDropdown | string;
+  labelKey: DictKey;
+  href: string;
+  dropdown?: NavDropdown;
+  external?: boolean;
+};
 
-const navItems: NavItem[] = [
+const mainNavItems: NavItem[] = [
   { key: "equipos", labelKey: "nav.equipos", href: "/equipos", dropdown: "equipos" },
-  { key: "rentals", labelKey: "nav.rentals", href: "/rentals" },
+  { key: "rentals", labelKey: "nav.rentals", href: RENTALS_DOMAIN_URL, external: true },
   { key: "servicios", labelKey: "nav.servicios", href: "/servicios", dropdown: "servicios" },
   { key: "nosotros", labelKey: "nav.nosotros", href: "/nosotros" },
   { key: "contacto", labelKey: "nav.contacto", href: "/contacto" },
+];
+
+const rentalsNavItems: NavItem[] = [
+  { key: "rentals", labelKey: "nav.rentals", href: "/" },
 ];
 
 const PARTS_URL = "https://gseparts.us";
@@ -96,8 +107,11 @@ export const Navbar = () => {
   const { t, translateCategory } = useI18n();
   const { pathname } = useLocation();
   const servicesDropdownId = useId();
-  const isHome = pathname === "/";
+  const rentalsHost = isRentalsHost();
+  const navItems = rentalsHost ? rentalsNavItems : mainNavItems;
+  const isHome = pathname === "/" && !rentalsHost;
   const solidNav = scrolled || !isHome;
+  const logoHref = rentalsHost ? MAIN_DOMAIN_URL : undefined;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -116,7 +130,7 @@ export const Navbar = () => {
       )}
     >
       <div className="container mx-auto h-[88px] flex items-center justify-between gap-6">
-        <Logo light={!solidNav} />
+        <Logo light={!solidNav} href={logoHref} />
 
         <nav className="hidden lg:flex items-center gap-8">
           {navItems.map((item) => {
@@ -151,6 +165,16 @@ export const Navbar = () => {
                       )}
                     />
                   </NavLink>
+                ) : item.external ? (
+                  <a
+                    href={item.href}
+                    className={cn(
+                      "nav-underline flex items-center gap-1 text-sm font-medium tracking-tight transition-colors py-2",
+                      solidNav ? "text-foreground hover:text-primary" : "text-white/90 hover:text-white"
+                    )}
+                  >
+                    {t(item.labelKey)}
+                  </a>
                 ) : (
                   <NavLink
                     to={item.href}
@@ -253,20 +277,27 @@ export const Navbar = () => {
             +1 (800) 123-4567
           </a>
           <LangToggle scrolled={solidNav} />
-          <QuoteCartLink solidNav={solidNav} />
+          {rentalsHost ? null : <QuoteCartLink solidNav={solidNav} />}
           <Button
             asChild
             className="rounded-full bg-accent hover:bg-accent-hover text-accent-foreground font-semibold px-5 h-10 shadow-glow hover:scale-[1.03] transition-transform"
           >
-            <Link to="/contacto">
-              {t("nav.cta")}
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
+            {rentalsHost ? (
+              <a href={MAIN_DOMAIN_URL}>
+                {t("nav.equipmentSales")}
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </a>
+            ) : (
+              <Link to="/contacto">
+                {t("nav.cta")}
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+            )}
           </Button>
         </div>
 
         <div className="lg:hidden flex items-center gap-2">
-          <QuoteCartLink solidNav={solidNav} />
+          {rentalsHost ? null : <QuoteCartLink solidNav={solidNav} />}
           <LangToggle scrolled={solidNav} />
           <button
             onClick={() => setMobileOpen(true)}
@@ -296,7 +327,7 @@ export const Navbar = () => {
               className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-background z-50 lg:hidden flex flex-col"
             >
               <div className="h-[88px] flex items-center justify-between px-6 border-b border-border">
-                <Logo />
+                <Logo href={logoHref} />
                 <button onClick={() => setMobileOpen(false)} aria-label={t("nav.menu_close")}>
                   <X className="w-6 h-6 text-foreground" />
                 </button>
@@ -354,6 +385,15 @@ export const Navbar = () => {
                         ))}
                       </div>
                     </div>
+                  ) : item.external ? (
+                    <a
+                      key={item.key}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className="py-3 px-2 text-lg font-semibold text-foreground hover:text-primary border-b border-border/50"
+                    >
+                      {t(item.labelKey)}
+                    </a>
                   ) : (
                     <NavLink
                       key={item.key}
@@ -374,9 +414,15 @@ export const Navbar = () => {
                   asChild
                   className="w-full rounded-full bg-accent hover:bg-accent-hover text-accent-foreground font-semibold h-12"
                 >
-                  <Link to="/contacto" onClick={() => setMobileOpen(false)}>
-                    {t("nav.cta")} <ArrowRight className="w-4 h-4 ml-1" />
-                  </Link>
+                  {rentalsHost ? (
+                    <a href={MAIN_DOMAIN_URL} onClick={() => setMobileOpen(false)}>
+                      {t("nav.equipmentSales")} <ArrowRight className="w-4 h-4 ml-1" />
+                    </a>
+                  ) : (
+                    <Link to="/contacto" onClick={() => setMobileOpen(false)}>
+                      {t("nav.cta")} <ArrowRight className="w-4 h-4 ml-1" />
+                    </Link>
+                  )}
                 </Button>
               </div>
             </motion.aside>

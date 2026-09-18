@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SgsLayout } from "@/components/sgs/SgsLayout";
 import { QuoteProvider } from "@/contexts/QuoteContext";
 import { I18nProvider } from "@/lib/i18n";
+import { isRentalsHost, RENTALS_DOMAIN_URL } from "@/utils/domain";
 import Index from "./pages/Index.tsx";
 import Equipos from "./pages/Equipos.tsx";
 import EquipmentDetail from "./pages/EquipmentDetail.tsx";
@@ -27,6 +28,45 @@ const PartsRedirect = () => {
   return null;
 };
 
+const RentalsDomainRedirect = () => {
+  window.location.replace(RENTALS_DOMAIN_URL);
+  return null;
+};
+
+const AppRoutes = () => {
+  if (isRentalsHost()) {
+    return (
+      <Routes>
+        <Route element={<SgsLayout />}>
+          <Route index element={<Rentals />} />
+          <Route path="equipos/:id" element={<EquipmentDetail />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route element={<SgsLayout />}>
+        <Route index element={<Index />} />
+        <Route path="equipos" element={<Equipos />} />
+        <Route path="equipos/:id" element={<EquipmentDetail />} />
+        <Route path="rentals" element={<RentalsDomainRedirect />} />
+        <Route path="categorias" element={<Categorias />} />
+        <Route path="servicios" element={<Servicios />} />
+        <Route path="servicios/reparacion" element={<RepairServices />} />
+        <Route path="repair-services" element={<Navigate to="/servicios/reparacion" replace />} />
+        <Route path="parts" element={<PartsRedirect />} />
+        <Route path="nosotros" element={<Nosotros />} />
+        <Route path="contacto" element={<Contacto />} />
+        <Route path="solicitud-cotizacion" element={<QuotePage />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -35,23 +75,7 @@ const App = () => (
       <BrowserRouter>
         <I18nProvider>
           <QuoteProvider>
-          <Routes>
-            <Route element={<SgsLayout />}>
-              <Route index element={<Index />} />
-              <Route path="equipos" element={<Equipos />} />
-              <Route path="equipos/:id" element={<EquipmentDetail />} />
-              <Route path="rentals" element={<Rentals />} />
-              <Route path="categorias" element={<Categorias />} />
-              <Route path="servicios" element={<Servicios />} />
-              <Route path="servicios/reparacion" element={<RepairServices />} />
-              <Route path="repair-services" element={<Navigate to="/servicios/reparacion" replace />} />
-              <Route path="parts" element={<PartsRedirect />} />
-              <Route path="nosotros" element={<Nosotros />} />
-              <Route path="contacto" element={<Contacto />} />
-              <Route path="solicitud-cotizacion" element={<QuotePage />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
+            <AppRoutes />
           </QuoteProvider>
         </I18nProvider>
       </BrowserRouter>

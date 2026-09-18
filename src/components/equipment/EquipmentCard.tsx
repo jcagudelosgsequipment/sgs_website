@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 
 import { RentalAvailabilityBadge } from "@/components/rentals/RentalAvailabilityBadge";
+import { RentalInquiryLink } from "@/components/rentals/RentalInquiryLink";
 import type { EquipmentItem, RentalAvailability } from "@/types/equipment";
 import { useI18n } from "@/lib/i18n";
-import { buildRentalInquiryPath, isIndefiniteRental } from "@/lib/rentalEquipment";
+import { isIndefiniteRental } from "@/lib/rentalEquipment";
 
 type EquipmentCardProps = {
   equipment: EquipmentItem;
@@ -82,12 +83,12 @@ export function EquipmentCard({
       </Link>
       <div className="mt-auto px-4 pb-4">
         {longTerm ? (
-          <Link
-            to={buildRentalInquiryPath(equipment)}
+          <RentalInquiryLink
+            equipment={equipment}
             className="inline-flex h-10 w-full items-center justify-center rounded-md border border-amber-500/40 bg-amber-500/10 px-4 text-sm font-bold text-amber-800 transition hover:bg-amber-500/20"
           >
             {t("rentals.card.inquire")}
-          </Link>
+          </RentalInquiryLink>
         ) : (
           <button
             type="button"

@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { RentalInquiryLink } from "@/components/rentals/RentalInquiryLink";
 import ReCAPTCHA from "react-google-recaptcha";
 import type { DateRange } from "react-day-picker";
 import { Loader2 } from "lucide-react";
@@ -25,7 +25,6 @@ import {
   selectionOverlapsDisabled,
 } from "@/lib/rentalAvailability";
 import {
-  buildRentalInquiryPath,
   exceedsMaxRentalPeriod,
   isIndefiniteRental,
   maxEndDateFromStart,
@@ -207,9 +206,9 @@ function RentalQuoteForm({
           <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-4 text-sm text-amber-100">
             <p>{t("rentals.quote.longTermHint")}</p>
             <Button asChild className="bg-[#FF5500] text-white hover:bg-[#e64d00]">
-              <Link to={buildRentalInquiryPath(equipment)} onClick={() => onOpenChange(false)}>
+              <RentalInquiryLink equipment={equipment} onClick={() => onOpenChange(false)}>
                 {t("rentals.card.inquire")}
-              </Link>
+              </RentalInquiryLink>
             </Button>
           </div>
         ) : (
@@ -441,9 +440,9 @@ function RentalQuoteForm({
           </Button>
           {datesLocked ? (
             <Button asChild className="flex-1 bg-[#FF5500] text-white hover:bg-[#e64d00]">
-              <Link to={buildRentalInquiryPath(equipment)} onClick={() => onOpenChange(false)}>
+              <RentalInquiryLink equipment={equipment} onClick={() => onOpenChange(false)}>
                 {t("rentals.card.inquire")}
-              </Link>
+              </RentalInquiryLink>
             </Button>
           ) : (
             <Button

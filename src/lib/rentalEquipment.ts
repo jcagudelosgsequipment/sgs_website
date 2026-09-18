@@ -1,5 +1,6 @@
 import { parseEquipmentStatuses } from "@/lib/equipmentStatus";
 import type { EquipmentItem, RentalAvailability } from "@/types/equipment";
+import { withMainDomain } from "@/utils/domain";
 
 export const MAX_RENTAL_DURATION_MS = 183 * 24 * 60 * 60 * 1000;
 
@@ -74,4 +75,10 @@ export function buildRentalInquiryPath(
     model: String(equipment.model || equipment.displayName || "").slice(0, 120),
   });
   return `/contacto?${params.toString()}`;
+}
+
+export function rentalInquiryHref(
+  equipment: Pick<EquipmentItem, "id" | "model" | "displayName">
+): string {
+  return withMainDomain(buildRentalInquiryPath(equipment));
 }

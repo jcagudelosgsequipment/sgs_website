@@ -14,6 +14,7 @@ import { PartsCarousel } from "@/components/sgs/home/PartsCarousel";
 import { ReconditionedCarousel } from "@/components/sgs/home/ReconditionedCarousel";
 import { useI18n, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { RENTALS_DOMAIN_URL } from "@/utils/domain";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
@@ -226,19 +227,19 @@ export const BusinessDivisions = () => {
             <p>{t("biz.div2.p1")}</p>
             <p className="mt-4">
               {t("biz.div2.p2.before")}{" "}
-              <Link
-                to="/rentals"
+              <a
+                href={RENTALS_DOMAIN_URL}
                 className="font-semibold text-accent transition-colors hover:text-accent-hover hover:underline"
               >
                 {t("biz.div2.p2.link")}
-              </Link>
+              </a>
               {t("biz.div2.p2.after")}
             </p>
             <p className="mt-4">{t("biz.div2.p3")}</p>
           </>
         ),
         highlightKeys: [],
-        cta: { labelKey: "biz.div2.cta", to: "/rentals" },
+        cta: { labelKey: "biz.div2.cta", to: RENTALS_DOMAIN_URL, external: true },
         brand: "SGS Rentals",
         card: "image",
         imageSrc: "/Equipment.png",

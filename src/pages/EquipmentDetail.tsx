@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { RentalAvailabilityBadge } from "@/components/rentals/RentalAvailabilityBadge";
+import { RentalInquiryLink } from "@/components/rentals/RentalInquiryLink";
 import { RentalQuoteModal } from "@/components/rentals/RentalQuoteModal";
 import { fetchEquipment } from "@/services/equipmentService";
 import { useQuote } from "@/contexts/QuoteContext";
@@ -12,7 +13,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   getEquipmentAvailability,
 } from "@/lib/rentalAvailability";
-import { buildRentalInquiryPath, isIndefiniteRental } from "@/lib/rentalEquipment";
+import { isIndefiniteRental } from "@/lib/rentalEquipment";
 import {
   getEquipmentStatusTone,
   getStatusToneForLabel,
@@ -22,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { EquipmentItem } from "@/types/equipment";
 import { Button } from "@/components/ui/button";
+import { catalogPath, isRentalsHost } from "@/utils/domain";
 
 function workOrderFromItem(item: EquipmentItem): string {
   if (item.title?.trim()) return item.title.trim();
@@ -53,6 +55,8 @@ const EquipmentDetail = () => {
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [rentalModalOpen, setRentalModalOpen] = useState(false);
+  const rentalsHost = isRentalsHost();
+  const catalogTo = catalogPath();
   const isRental = equipment?.isRental === true;
   const { availabilityMap, refreshAvailability } = useRentalAvailability({
     enabled: isRental,
@@ -85,6 +89,13 @@ const EquipmentDetail = () => {
       cancelled = true;
     };
   }, [id, t]);
+
+  useEffect(() => {
+    if (listLoading || !equipment) return;
+    if (rentalsHost && equipment.isRental !== true) {
+      navigate("/", { replace: true });
+    }
+  }, [equipment, listLoading, navigate, rentalsHost]);
 
   const workOrder = useMemo(
     () => (equipment ? workOrderFromItem(equipment) : ""),
@@ -147,10 +158,11 @@ const EquipmentDetail = () => {
       .filter(
         (item) =>
           item.equipmentType === equipment.equipmentType &&
-          String(item.id) !== String(equipment.id)
+          String(item.id) !== String(equipment.id) &&
+          (!rentalsHost || item.isRental === true)
       )
       .slice(0, 3);
-  }, [allEquipment, equipment]);
+  }, [allEquipment, equipment, rentalsHost]);
 
   const overviewText = equipment?.description ?? "";
 
@@ -174,8 +186,17 @@ const EquipmentDetail = () => {
           variant="outline"
           className="mt-6 border-slate-200 bg-white text-slate-800 shadow-md shadow-slate-200/40 hover:bg-slate-50"
         >
-          <Link to="/equipos">{t("equipment.backCatalog")}</Link>
+          <Link to={catalogTo}>{t("equipment.backCatalog")}</Link>
         </Button>
+      </div>
+    );
+  }
+
+  if (rentalsHost && !isRental) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50/60 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" aria-hidden />
+        <span className="sr-only">{t("equipment.loading")}</span>
       </div>
     );
   }
@@ -200,7 +221,7 @@ const EquipmentDetail = () => {
               {t("equipment.home")}
             </Link>
             <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
-            <Link to="/equipos" className="transition-colors hover:text-orange-600">
+            <Link to={catalogTo} className="transition-colors hover:text-orange-600">
               {categoryLabel}
             </Link>
             <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
@@ -314,9 +335,9 @@ const EquipmentDetail = () => {
                         size="lg"
                         className="h-14 flex-1 rounded-xl bg-[#FF5500] px-8 text-base font-semibold text-white shadow-lg hover:bg-orange-500"
                       >
-                        <Link to={buildRentalInquiryPath(equipment)}>
+                        <RentalInquiryLink equipment={equipment}>
                           {t("rentals.card.inquire")}
-                        </Link>
+                        </RentalInquiryLink>
                       </Button>
                     ) : (
                       <Button
@@ -332,6 +353,7 @@ const EquipmentDetail = () => {
                       </Button>
                     )
                   ) : null}
+                  {rentalsHost ? null : (
                   <Button
                     type="button"
                     size="lg"
@@ -360,6 +382,7 @@ const EquipmentDetail = () => {
                         ? t("equipment.removeQuote")
                         : t("equipment.addQuote")}
                   </Button>
+                  )}
                 </div>
               </div>
             </div>

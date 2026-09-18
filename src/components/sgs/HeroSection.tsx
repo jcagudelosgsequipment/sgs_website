@@ -5,6 +5,7 @@ import {
   type HoveredCard,
 } from "@/components/sgs/hero/DivisionColumn";
 import { TornPaperDivider } from "@/components/sgs/hero/TornPaperDivider";
+import { RENTALS_DOMAIN_URL } from "@/utils/domain";
 
 const DIVISIONS: DivisionData[] = [
   {
@@ -29,7 +30,8 @@ const DIVISIONS: DivisionData[] = [
     badgeKey: "hero.col.rentals.badge",
     descKey: "hero.col.rentals.desc",
     ctaKey: "hero.col.rentals.cta",
-    href: "/rentals",
+    href: RENTALS_DOMAIN_URL,
+    external: true,
     fullClick: true,
     footer: "none",
   },

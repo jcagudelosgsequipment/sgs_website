@@ -3,10 +3,11 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "@/components/sgs/Footer";
 import { Navbar } from "@/components/sgs/Navbar";
 import { HomeWatermarkProvider } from "@/contexts/HomeWatermarkContext";
+import { isRentalsHost } from "@/utils/domain";
 
 export const SgsLayout = () => {
   const { pathname } = useLocation();
-  const isHome = pathname === "/";
+  const isHome = pathname === "/" && !isRentalsHost();
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);

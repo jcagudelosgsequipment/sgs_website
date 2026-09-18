@@ -13,6 +13,7 @@ export const dict = {
   "nav.nosotros": { es: "Nosotros", en: "About" },
   "nav.contacto": { es: "Contacto", en: "Contact" },
   "nav.cta": { es: "Solicitar Cotización", en: "Request a Quote" },
+  "nav.equipmentSales": { es: "Venta de Equipos", en: "Equipment Sales" },
   "nav.menu_open": { es: "Abrir menú", en: "Open menu" },
   "nav.menu_close": { es: "Cerrar menú", en: "Close menu" },
 
