@@ -197,7 +197,7 @@ function formatReadableDate(isoDate) {
   });
 }
 
-export function buildRentalQuoteEmailHtml({ customer, equipment, receivedAt, estimatedDays }) {
+export function buildRentalQuoteEmailHtml({ customer, equipment, receivedAt, estimatedDays, orderId }) {
   const formattedDate = escapeHtml(
     new Date(receivedAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
   );
@@ -223,6 +223,11 @@ export function buildRentalQuoteEmailHtml({ customer, equipment, receivedAt, est
               <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;line-height:1.3;">
                 New Rental Request
               </h1>
+              ${
+                orderId
+                  ? `<p style="margin:14px 0 0;font-size:20px;font-weight:700;color:#ffffff;">Rental Order: #${escapeHtml(orderId)}</p>`
+                  : ''
+              }
               <p style="margin:10px 0 0;font-size:13px;color:#cbd5e1;">Received: ${formattedDate}</p>
             </td>
           </tr>

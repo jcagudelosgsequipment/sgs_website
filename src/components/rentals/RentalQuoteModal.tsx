@@ -74,6 +74,7 @@ function RentalQuoteForm({
   const [form, setForm] = useState<ContactForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const today = useMemo(() => {
@@ -178,11 +179,16 @@ function RentalQuoteForm({
         }),
       });
 
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+        orderId?: number | string;
+      } | null;
+
       if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error ?? t("rentals.quote.error"));
       }
 
+      setOrderId(data?.orderId != null && data.orderId !== "" ? String(data.orderId) : null);
       setSuccess(true);
       setForm(EMPTY_FORM);
       setRange(undefined);
@@ -195,6 +201,29 @@ function RentalQuoteForm({
       setRecaptchaToken(null);
     }
   };
+
+  if (success) {
+    return (
+      <div className="space-y-6 py-4 text-center">
+        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          {t("rentals.quote.success")}
+        </p>
+        {orderId ? (
+          <p className="text-3xl font-bold tracking-wide text-white">
+            {t("rentals.quote.orderId", { orderId })}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          className="border-white/20 bg-transparent text-white hover:bg-white/10"
+        >
+          {t("rentals.quote.close")}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-2">
@@ -400,12 +429,6 @@ function RentalQuoteForm({
             {error}
           </p>
         )}
-        {success && (
-          <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-            {t("rentals.quote.success")}
-          </p>
-        )}
-
         <input
           type="text"
           name="b_website_hp"

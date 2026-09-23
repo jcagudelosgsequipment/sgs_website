@@ -130,7 +130,8 @@ async function sendRentalQuoteNotification(accessToken, payload) {
     payload.equipment.displayName ||
     `${payload.equipment.manufacturer || ''} ${payload.equipment.model || ''}`.trim() ||
     payload.equipment.title;
-  const subject = `New Rental Request - ${displayName} (${payload.customer.startDate} to ${payload.customer.endDate})`;
+  const orderLabel = payload.orderId ? `Rental Order #${payload.orderId} — ` : '';
+  const subject = `${orderLabel}New Rental Request - ${displayName} (${payload.customer.startDate} to ${payload.customer.endDate})`;
   const mailPayload = {
     message: {
       subject,
@@ -426,6 +427,56 @@ function buildBookingFields(desiredFields, columns) {
   return fields;
 }
 
+let rentalOrderQueue = Promise.resolve();
+let lastAssignedRentalOrder = 0;
+
+function enqueueRentalOrderWrite(task) {
+  const run = rentalOrderQueue.then(task, task);
+  rentalOrderQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
+function formatRentalOrder(nextNumber) {
+  return String(nextNumber).padStart(4, '0');
+}
+
+function fallbackRentalOrderNumber() {
+  const fromTimestamp = Number(String(Date.now()).slice(-4));
+  if (fromTimestamp >= 1 && fromTimestamp <= 9999) return fromTimestamp;
+  return 1 + (Date.now() % 9999);
+}
+
+function withRentalOrder(fields, formattedOrderId) {
+  return { ...fields, RentalOrder: formattedOrderId };
+}
+
+async function resolveNextRentalOrder(accessToken, siteId, listId) {
+  const listUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items?$expand=fields($select=id,RentalOrder)&$orderby=id desc&$top=1`;
+
+  try {
+    const response = await axios.get(listUrl, {
+      headers: {
+        ...graphAuthHeaders(accessToken),
+        Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly',
+      },
+    });
+    const lastItem = response.data?.value?.[0];
+    const lastVal = lastItem?.fields?.RentalOrder;
+    let nextNumber = lastVal ? parseInt(lastVal, 10) + 1 : 1;
+    if (!Number.isFinite(nextNumber) || nextNumber < 1) nextNumber = 1;
+    if (lastAssignedRentalOrder >= nextNumber) nextNumber = lastAssignedRentalOrder + 1;
+    return formatRentalOrder(nextNumber);
+  } catch (error) {
+    logGraphFailure('GET último Rental Order', listUrl, null, error);
+    const nextNumber = lastAssignedRentalOrder >= 1 ? lastAssignedRentalOrder + 1 : fallbackRentalOrderNumber();
+    console.error('[rentals/quote] Fallback Rental Order de 4 dígitos:', formatRentalOrder(nextNumber));
+    return formatRentalOrder(nextNumber);
+  }
+}
+
 async function fetchRentalBookings(accessToken, siteId, listId) {
   const listKey = listId || encodeURIComponent(bookingsListName());
   const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listKey}/items?$expand=fields&$top=200`;
@@ -656,6 +707,7 @@ app.post('/api/rentals/quote', async (req, res) => {
     workOrder;
 
   let accessToken;
+  let nextOrder;
 
   try {
     console.log('--- Creando registro en SharePoint (RentalBookings) ---');
@@ -716,43 +768,54 @@ app.post('/api/rentals/quote', async (req, res) => {
       'BookingAddress',
       'ContactMethod',
     ]);
-    const mappedFields = buildBookingFields(desiredFields, columns);
-    mappedFields.ContactMethod = desiredFields.ContactMethod;
-    const itemPayload = { fields: mappedFields };
 
-    console.log('📤 Enviando item a RentalBookings:', createUrl, JSON.stringify(itemPayload));
+    const created = await enqueueRentalOrderWrite(async () => {
+      const formattedOrderId = await resolveNextRentalOrder(accessToken, siteId, listId);
+      const mappedFields = withRentalOrder(buildBookingFields(desiredFields, columns), formattedOrderId);
+      mappedFields.ContactMethod = desiredFields.ContactMethod;
+      const itemPayload = { fields: mappedFields };
 
-    let spRes;
-    try {
-      spRes = await axios.post(createUrl, itemPayload, {
-        headers: {
-          ...graphAuthHeaders(accessToken),
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch (createError) {
-      logGraphFailure('POST RentalBookings (campos mapeados)', createUrl, itemPayload, createError);
+      console.log('📤 Enviando item a RentalBookings:', createUrl, JSON.stringify(itemPayload));
+
       try {
-        columns = await getBookingsColumns(accessToken, siteId, listId);
-      } catch {
-        // already logged
+        const spRes = await axios.post(createUrl, itemPayload, {
+          headers: {
+            ...graphAuthHeaders(accessToken),
+            'Content-Type': 'application/json',
+          },
+        });
+        lastAssignedRentalOrder = parseInt(formattedOrderId, 10);
+        return { spRes, order: formattedOrderId };
+      } catch (createError) {
+        logGraphFailure('POST RentalBookings (campos mapeados)', createUrl, itemPayload, createError);
+        cachedBookingsColumns = null;
+        try {
+          columns = await getBookingsColumns(accessToken, siteId, listId);
+        } catch {
+          // already logged
+        }
+
+        const coreDesired = Object.fromEntries(
+          Object.entries(desiredFields).filter(([key]) => coreKeys.has(key))
+        );
+        const corePayload = {
+          fields: withRentalOrder(buildBookingFields(coreDesired, columns), formattedOrderId),
+        };
+        corePayload.fields.ContactMethod = desiredFields.ContactMethod;
+        console.log('📤 Reintento con campos canónicos:', JSON.stringify(corePayload));
+        const spRes = await axios.post(createUrl, corePayload, {
+          headers: {
+            ...graphAuthHeaders(accessToken),
+            'Content-Type': 'application/json',
+          },
+        });
+        lastAssignedRentalOrder = parseInt(formattedOrderId, 10);
+        return { spRes, order: formattedOrderId };
       }
+    });
 
-      const coreDesired = Object.fromEntries(
-        Object.entries(desiredFields).filter(([key]) => coreKeys.has(key))
-      );
-      const corePayload = { fields: buildBookingFields(coreDesired, columns) };
-      corePayload.fields.ContactMethod = desiredFields.ContactMethod;
-      console.log('📤 Reintento con campos canónicos:', JSON.stringify(corePayload));
-      spRes = await axios.post(createUrl, corePayload, {
-        headers: {
-          ...graphAuthHeaders(accessToken),
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-
-    console.log('✅ Item creado con éxito en SharePoint! ID:', spRes.data?.id);
+    nextOrder = created.order;
+    console.log('✅ Item creado con éxito en SharePoint! ID:', created.spRes.data?.id, 'Rental Order:', nextOrder);
   } catch (spError) {
     logGraphFailure('SharePoint RentalBookings', null, null, spError);
     return res.status(500).json({
@@ -784,18 +847,25 @@ app.post('/api/rentals/quote', async (req, res) => {
       },
       receivedAt: new Date().toISOString(),
       estimatedDays,
+      orderId: nextOrder,
       to: RENTAL_QUOTE_TO,
     });
     console.log('✅ Correo enviado con éxito');
   } catch (mailError) {
     console.error('❌ Error en Email:', JSON.stringify(graphErrorBody(mailError), null, 2));
-    return res.json({
+    return res.status(200).json({
       success: true,
+      orderId: nextOrder,
+      message: 'Quote submitted successfully',
       warning: 'Guardado en SharePoint pero falló el envío de correo',
     });
   }
 
-  return res.json({ success: true });
+  return res.status(200).json({
+    success: true,
+    orderId: nextOrder,
+    message: 'Quote submitted successfully',
+  });
 });
 
 // 6. RUTA COTIZACIÓN: Recibe formulario y envía correo a ventas

@@ -537,6 +537,10 @@ export const dict = {
     es: "Request sent. The SGS Rentals team will contact you shortly.",
     en: "Request sent. The SGS Rentals team will contact you shortly.",
   },
+  "rentals.quote.orderId": {
+    es: "Rental Order: #{orderId}",
+    en: "Rental Order: #{orderId}",
+  },
   "rentals.quote.error": {
     es: "The quote could not be sent. Please try again.",
     en: "The quote could not be sent. Please try again.",
