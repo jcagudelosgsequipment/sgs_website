@@ -443,38 +443,40 @@ function formatRentalOrder(nextNumber) {
   return String(nextNumber).padStart(4, '0');
 }
 
-function fallbackRentalOrderNumber() {
-  const fromTimestamp = Number(String(Date.now()).slice(-4));
-  if (fromTimestamp >= 1 && fromTimestamp <= 9999) return fromTimestamp;
-  return 1 + (Date.now() % 9999);
-}
-
 function withRentalOrder(fields, formattedOrderId) {
   return { ...fields, RentalOrder: formattedOrderId };
 }
 
 async function resolveNextRentalOrder(accessToken, siteId, listId) {
-  const listUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items?$expand=fields($select=id,RentalOrder)&$orderby=id desc&$top=1`;
+  const headers = {
+    ...graphAuthHeaders(accessToken),
+    Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly',
+  };
+  const listUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items?$expand=fields($select=RentalOrder)&$top=200`;
+  const items = [];
+  let nextUrl = listUrl;
 
   try {
-    const response = await axios.get(listUrl, {
-      headers: {
-        ...graphAuthHeaders(accessToken),
-        Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly',
-      },
-    });
-    const lastItem = response.data?.value?.[0];
-    const lastVal = lastItem?.fields?.RentalOrder;
-    let nextNumber = lastVal ? parseInt(lastVal, 10) + 1 : 1;
-    if (!Number.isFinite(nextNumber) || nextNumber < 1) nextNumber = 1;
-    if (lastAssignedRentalOrder >= nextNumber) nextNumber = lastAssignedRentalOrder + 1;
-    return formatRentalOrder(nextNumber);
+    while (nextUrl) {
+      const response = await axios.get(nextUrl, { headers });
+      items.push(...(response.data.value || []));
+      nextUrl = response.data['@odata.nextLink'] || null;
+    }
   } catch (error) {
-    logGraphFailure('GET último Rental Order', listUrl, null, error);
-    const nextNumber = lastAssignedRentalOrder >= 1 ? lastAssignedRentalOrder + 1 : fallbackRentalOrderNumber();
-    console.error('[rentals/quote] Fallback Rental Order de 4 dígitos:', formatRentalOrder(nextNumber));
-    return formatRentalOrder(nextNumber);
+    logGraphFailure('GET RentalOrder existentes', listUrl, null, error);
+    throw error;
   }
+
+  let maxOrder = 0;
+  for (const item of items) {
+    const parsed = parseInt(item?.fields?.RentalOrder, 10);
+    if (Number.isFinite(parsed) && parsed > maxOrder) maxOrder = parsed;
+  }
+
+  const nextNumber = Math.max(maxOrder, lastAssignedRentalOrder) + 1;
+  const formatted = formatRentalOrder(nextNumber);
+  console.log('[rentals/quote] RentalOrder en lista:', items.length, 'máximo:', maxOrder, 'siguiente:', formatted);
+  return formatted;
 }
 
 async function fetchRentalBookings(accessToken, siteId, listId) {
